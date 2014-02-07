@@ -1,13 +1,17 @@
-'''
+"""
 Created on Nov 7, 2013
 
 @author: PBS Biotech
-'''
+"""
 
 from types import FunctionType, MethodType, ModuleType
 import os
 from time import perf_counter
 from collections import OrderedDict
+from subprocess import Popen
+import tkinter as tk
+import tkinter.ttk as ttk
+
 
 debug_file = "C:/dbg.txt"
 debug_file_viewer = "C:/Program Files/Notepad++/notepad++.exe"
@@ -22,16 +26,16 @@ def sys_exit():
 
 
 def view_dbg():
-    global Popen
     global debug_active_fh
-    from subprocess import Popen
+
     try:
         f = debug_active_fh.name
     except AttributeError:  # no active filehandle
         f = debug_file
+
+    editor, flags = debug_view_cmd
+
     try:
-        global debug_view_cmd
-        editor, flags = debug_view_cmd
         Popen(' '.join([editor, flags, f]))
     except:
         print("failed to open debug file with %s, %s" % (editor, flags))
@@ -41,7 +45,7 @@ def view_dbg():
             
             
 def awrite_dbg(data, debug_file=debug_file):
-    '''data should be a list of primitive types'''
+    """data should be a list of primitive types"""
     
     with open(debug_file, 'a') as f:
         f.write(data)
@@ -49,7 +53,8 @@ def awrite_dbg(data, debug_file=debug_file):
     
     
 def purge_dbg_file(debug_file=debug_file):
-    with open(debug_file, 'w') as _f: 
+    # noinspection PyUnusedLocal
+    with open(debug_file, 'w') as _f:
         pass
         
         
@@ -100,16 +105,14 @@ def close_dbg_file(f=None):
 def dbg_dump(data):
     purge_dbg_file()
     awrite_dbg(data)
-    
-    
+
+
+# noinspection PyGlobalUndefined
 def close_all_xl():
-    
-    global win32com
+
     global client
-    
-    import win32com  # @UnusedImport
     import win32com.client as client
-    
+
     uh_oh_counter = 0
     uh_oh_max = 30
     while True:
@@ -119,11 +122,12 @@ def close_all_xl():
             xl.Quit()
             xl.DisplayAlerts = True
             xl = None
+            del xl
             uh_oh_counter += 1
             print("Excel %d closed" % uh_oh_counter)
         except Exception as e:
             #this is the COM error code corresponding to attempting to
-            #close non-existant object, or something. 
+            #close non-existent object, or something.
             if e.__str__()[0] != -2147023170:
                 print(e)
                 raise e
@@ -192,20 +196,15 @@ VC_COORD_RELIEF = 'groove'
 
 
 class TkViewCoordsCallError(Exception):
-    '''Used internally to distinguish between 
+    """Used internally to distinguish between 
     errors raised due to improper use of TkVC-related
-    functions and other types of errors'''
+    functions and other types of errors"""
     pass
-
-
-global tk, ttk
-import tkinter as tk
-import tkinter.ttk as ttk
 
 
 def TkViewCoords(*args):
     
-    '''redirect function for debugging grid-based tkinter
+    """redirect function for debugging grid-based tkinter
     dialogs. 
     
     If one arg passed, assume function is being used
@@ -225,7 +224,7 @@ def TkViewCoords(*args):
     Throw TkViewCoordsCallError everywhere if function is used incorrectly. 
     
     Todo: badly need of refactoring (esp params)
-    '''
+    """
 
     # Begin the process of figuring out what the hell the user wants
     if len(args) > 2 or len(args) < 1:
@@ -240,7 +239,7 @@ def TkViewCoords(*args):
         
             # used incorrectly. passed (obj.master) instead of (obj, obj.master) 
             # or (obj, 'master'), but might still be able to figure out how to 
-            # add VC button anyway'''
+            # add VC button anyway"""
         elif is_good_tk_master(m_name):
             obj = m_name
             m_name = None
@@ -249,7 +248,7 @@ def TkViewCoords(*args):
         else: 
             raise TkViewCoordsCallError("View coords passed single argument of type \"%s\".\n \
                          Must pass args of types (instance, frame_name) or use as class decorator:\n \
-                    TkViewCoordscoords(\"frame_to_examine\")\n \
+                    TkViewCoords(\"frame_to_examine\")\n \
                          class Dialog():\n \
                          or:\n \
                    TkViewCoords = view_coords(dialog, \"frame_to_examine\")" % repr(m_name))
@@ -290,11 +289,13 @@ def TkViewCoords(*args):
             #magically get var names sent to func that called view_dbg, yay regex. 
             args = [arg.strip() for arg in re.findall(re.compile(r"(?<=\()(.*)(?=\))"), tbfunc)[0].split(',')]
             for i, arg in enumerate(args):
+                # noinspection PyTypeChecker
                 if arg.strip('\'') == m_name:
-                    args[i] = arg.strip('\'') 
+                    # noinspection PyTypeChecker
+                    args[i] = arg.strip('\'')
             args.append(__name__)
             
-            #how do you multi-line these damn strings without fking up the formatting???
+            #how do you multi-line these damn strings without up the formatting???
             message = '\'{1}\' is not a valid Tk Master\n    Check identity of \'{0}.{1}\' or check function \'{2}.is_good_tk_master()\' to ensure\n\tthe list there is complete.'.format(*args)
             raise TkViewCoordsCallError(message)
             
@@ -307,7 +308,7 @@ def TkViewCoords(*args):
 
 
 def view_cls_coords(m_name):
-    '''Decorator function for use with debugging tkinter dialogs
+    """Decorator function for use with debugging tkinter dialogs
     ex usage: 
     
     # @TkViewCoords("master")
@@ -322,7 +323,7 @@ def view_cls_coords(m_name):
     Works by adding new class methods to the decorated class, and 
     hijacking the __init__ function to automagically set up all 
     the stuff necessary for the view-coords button to show up and work 
-    '''
+    """
     
     if not isinstance(m_name, str):
         raise TkViewCoordsCallError("TkViewCoords expects argument of type \"str\", not %s" % m_name.__class__)
@@ -377,14 +378,14 @@ def view_cls_coords(m_name):
     
     
 def view_instance_coords(old_obj, m_name):
-    '''similar to the above function, but operates on instances 
+    """similar to the above function, but operates on instances 
     of dialog classes instead.
     
     Create a new class "VC_class" as a wonky snapshot of the passed
     instance. Tricky because tkinter wraps the underlying TCL engine, 
     which doesn't play nicely with standard Python class magic. 
     
-    '''  
+    """  
     
     try:
         master = getattr(old_obj, m_name)
@@ -414,11 +415,11 @@ def view_instance_coords(old_obj, m_name):
      
     obj = VC_class(m_name, root_name)
 
-    '''This is the old code to simply use methodtype to bind
+    """This is the old code to simply use methodtype to bind
     buttons directly onto the same running instance. 
     
     Uncomment here and comment everything above to get old 
-    functionality back'''
+    functionality back"""
 #     from types import MethodType
 #     MethodType creates bound method
 #     obj=old_obj
@@ -436,7 +437,7 @@ def view_instance_coords(old_obj, m_name):
 
 
 def __build_VC_class_dict(init=None, root=None, master=None, root_name=None, m_name=None, **kwargs):
-    '''return the dict for a new VC_class object'''
+    """return the dict for a new VC_class object"""
     
     new_dict = {
             '__init__' : init,
@@ -454,18 +455,18 @@ def __build_VC_class_dict(init=None, root=None, master=None, root_name=None, m_n
 
 
 def __build_VC_init_(m_name=None, root_name=None):
-    '''Magical function which builds the init function for 
-    VC_class'''
+    """Magical function which builds the init function for 
+    VC_class"""
     
     ####Begin Magic
     def __init__(self, m_name=m_name, root_name=root_name):
          
         #nested helper function #1
         def copy_widget(widget, new_master):
-            '''Deep copy widget based on extracting non-default
+            """Deep copy widget based on extracting non-default
             config options, and all grid_info options. 
             
-            Currently doesn't copy button commands.'''
+            Currently doesn't copy button commands."""
             
             # Reference to self is not properly updated
             # if used as a default parameter, for some reason
@@ -562,13 +563,13 @@ def is_good_tk_master(obj):
 
 
 def __make_cell_coords(self, master, widget_type=VC_COORD_WIDGET):
-    '''Coords is a list of 3-tuples
+    """Coords is a list of 3-tuples
     Each tuple has the form (row, column, tkWidget)
-    
+
     widget_cb is the function used to construct widgets
     and set the widget gridops dict to the correct settings
-    Use 
-    '''
+    Use
+    """
     font = VC_COORD_FONT
     if widget_type == 'Label':
         self.widget_gridops = {'padx' : (0,0), 'pady' : (0,0)} 
@@ -641,10 +642,10 @@ def __hide_cell_coords(self):
 
 def __find_root(slave=None, obj=None):
     
-    '''Get root. Try to get it with three strategies:
+    """Get root. Try to get it with three strategies:
     try#1: follow master.master chain until master=None
     try#2: scan class dict directly to try to find tk.Tk
-    try#3: scan any masters in class dict through master.master chain'''
+    try#3: scan any masters in class dict through master.master chain"""
     if slave is not None:
         #try #1
         root = slave.master
@@ -666,7 +667,7 @@ def __find_root(slave=None, obj=None):
     return (None,None)
     
     
-'''The following are debugging functions designed to be used to 
+"""The following are debugging functions designed to be used to 
 inspect arguments passed to function calls, similar to inspect module
 functionality. These were written before I discovered the inspect module
 but they still work nicely, and provide slightly different functionality. 
@@ -674,37 +675,37 @@ but they still work nicely, and provide slightly different functionality.
 Each function attaches a printFuncCalls function wrapper to each function
 found according to the rules of each function (ie, module finds all functions 
 in itself, as well as all functions of classes and modules in its __dict__, etc). 
-'''    
+"""    
 
 
 class CallTraceError(Exception):
-    '''Throw this to user on bad call.'''
+    """Throw this to user on bad call."""
     pass
     
 
 class ClassCallTraceError(CallTraceError):
-    '''Identify specific errors'''
+    """Identify specific errors"""
     pass
     
     
 class ModuleCallTraceError(CallTraceError):
-    '''Identify specific errors'''
+    """Identify specific errors"""
     pass
     
     
 class FunctionCallTraceError(CallTraceError):
-    '''Identify specific errors'''
+    """Identify specific errors"""
     pass
 
 
-'''This is the path to the python33/Lib folder'''
+"""This is the path to the python33/Lib folder"""
 pylibpath = '\\'.join(os.__file__.split("\\")[:-1])
 
 trace_scope = 0
 trace_spacer = '    '  # 4 spaces (tab) width
 
-'''List of default modules to ignore when recursively printFuncCalls-ing
-modules. Internal use, don't touch at runtime!'''
+"""List of default modules to ignore when recursively printFuncCalls-ing
+modules. Internal use, don't touch at runtime!"""
  
 __TMC_EXCLUDE_DEFAULTS = [
                'importlib._bootstrap',
@@ -734,14 +735,14 @@ __TCC_EXCLUDE_DEFAULTS = [
                         ]
 
                
-'''Modify this at runtime'''
+"""Modify this at runtime"""
 traceModuleCallsExclude = __TMC_EXCLUDE_DEFAULTS[:]
 traceFunctionCallsExclude = __TFC_EXCLUDE_DEFAULTS[:]
 traceClassCallsExclude = __TCC_EXCLUDE_DEFAULTS[:]
 traceFunctionCallsIgnore = __TFC_IGNORE_DEFAULTS[:]
 
 
-'''Reset if it gets too messed up'''
+"""Reset if it gets too messed up"""
 
 
 def resetModuleCallsExclude():
@@ -785,7 +786,7 @@ def addFunctionCallsIgnore(*Functions):
     
 
 def traceModuleCalls(module, *, checked=None):
-    '''Operate on module variables to attach printFuncCalls wrapper
+    """Operate on module variables to attach printFuncCalls wrapper
     to everything found in its __dict__. For functions, attach wrapper.
     For classes, attach wrapper to each class function. For modules, 
     recursively call itself, using checked parameter as a dict to avoid 
@@ -795,7 +796,7 @@ def traceModuleCalls(module, *, checked=None):
     ToDo: scan for instances of non-builtin classes. 
     Todo: use predicate callback to allow more runtime customization
     of traces.  
-    '''
+    """
 
     #first pass- create checked dict
     if checked is None:
@@ -834,8 +835,8 @@ def traceModuleCalls(module, *, checked=None):
             except ClassCallTraceError:
                 pass
                 
-        ''' Left here for use as example code, but depreciated.
-            To trace module calls, scan sys.modules instead. ''' 
+        """ Left here for use as example code, but depreciated.
+            To trace module calls, scan sys.modules instead. """ 
 #         elif isinstance(v, ModuleType) and v.__name__ not in traceModuleCallsExclude:
 #              
 #             #skip if module already checked (redundant with prev code))
@@ -853,7 +854,7 @@ def traceModuleCalls(module, *, checked=None):
 
 def traceClassCalls(cls):
     
-    '''handle wrapping all functions found in classes'''
+    """handle wrapping all functions found in classes"""
     if cls.__name__ in traceClassCallsExclude:
         raise CallTraceError("Attempted to trace functions in excluded class.")
         
@@ -876,7 +877,7 @@ def traceClassCalls(cls):
 
 def traceFuncCalls(func, *, annotation=None, functype="fn"):  # @UnusedVariable
     
-    '''Wrap the function by defining a decorator to print
+    """Wrap the function by defining a decorator to print
     information about all arguments passed by comparing *args **kwargs
     with the information found in the function's bound code object
     
@@ -896,7 +897,7 @@ def traceFuncCalls(func, *, annotation=None, functype="fn"):  # @UnusedVariable
         Eventually, the wrapper needs to actually become a class with configurable options
         to control display over single args and such, which calls the function directly
         through __call__.
-    '''
+    """
     
     #if function was already wrapped, abort
     #also, avoid recursion if function is called on itself
@@ -928,7 +929,7 @@ def traceFuncCalls(func, *, annotation=None, functype="fn"):  # @UnusedVariable
     tc = perf_counter
     
     if func.__name__ in traceFunctionCallsIgnore:
-        '''Wrap function, but don't trace args or return value'''
+        """Wrap function, but don't trace args or return value"""
         def printFuncCalls(*args, **kwargs):
             global trace_scope
             global trace_spacer
@@ -943,8 +944,8 @@ def traceFuncCalls(func, *, annotation=None, functype="fn"):  # @UnusedVariable
             
             trace_scope = trace_scope + 1
             
-            '''outer try/finally necessary to ensure scope trace is updated
-            properly when errors are caught in caller's try/except during func call'''
+            """outer try/finally necessary to ensure scope trace is updated
+            properly when errors are caught in caller's try/except during func call"""
             try:
                 t_call = tc()
                 _return = func(*args, **kwargs)
@@ -1002,8 +1003,8 @@ def traceFuncCalls(func, *, annotation=None, functype="fn"):  # @UnusedVariable
                            )
             
             trace_scope = trace_scope + 1
-            '''outer try/finally necessary to ensure scope trace is updated
-            properly when errors are caught in caller's try/except during func call'''
+            """outer try/finally necessary to ensure scope trace is updated
+            properly when errors are caught in caller's try/except during func call"""
             try:
                 t_call = tc()
                 _return = func(*args, **kwargs)
@@ -1018,14 +1019,14 @@ def traceFuncCalls(func, *, annotation=None, functype="fn"):  # @UnusedVariable
                                          ))
                                )
                 
-                '''this try block is necessary to prevent accidental errors from
+                """this try block is necessary to prevent accidental errors from
                 being raised when working with library modules that use internal function
                 calls on objects that may not print info properly
                 
                 _return is placed on an empty line to force CPython to attempt
                 to look up the value, and throw exception quickly if _return
                 was not defined. 
-                ''' 
+                """ 
 
                 try:
                     _return
@@ -1083,10 +1084,10 @@ overloadIgnoreList = [
 
 def OverloadWarningMeta(name, bases, kwargs):
     
-    '''Primarily a debugging metaclass for checking 
-    for overloaded properties and functions'''
+    """Primarily a debugging metaclass for checking 
+    for overloaded properties and functions"""
     ignore = overloadIgnoreList
-    '''Overload Warnings'''
+    """Overload Warnings"""
     for base in bases:
         basekeys = base.__dict__.keys()
         for k in kwargs:
