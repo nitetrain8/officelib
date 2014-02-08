@@ -96,7 +96,7 @@ class Times(ProxyListBase):
         raw = [time.strip() for time in times if time.strip()]
         fmt = self._parse_date_fmt(raw[0])
         
-        strptime = self.strptime    
+        strptime = self.strptime
         super().__init__(strptime(date, fmt) for date in raw)
         
         self._raw = raw
@@ -390,9 +390,9 @@ class BatchFile(OrderedDict, BatchBase):
 
             try:
                 param = Parameter(header, times, pvs)
-            except BatchError as e:
+            except Exception as e:
                 # Catch errors during creation to reraise with filename of problem. 
-                raise BatchFileError("Error occurred trying to make batch file " + self.Filename) from e 
+                raise BatchFileError("Error occurred trying to make %s in batch file " % header + self.Filename) from e
             
             self[header] = param
          
