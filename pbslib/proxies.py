@@ -12,7 +12,7 @@ from officelib.pbslib.batchbase import BatchBase, BatchError  # @UnresolvedImpor
 from officelib.pbslib.batchutil import ExtractCSV, groupHeaderData  # @UnresolvedImport
 from officelib.olutils import getFullLibraryPath
 from collections import Counter, OrderedDict
-from itertools import zip_longest, islice
+from itertools import zip_longest, islice, takewhile
 
 
 class BatchProxyError(BatchError):
@@ -26,10 +26,8 @@ class BatchFileError(BatchProxyError):
 
 class InvalidDateStringError(BatchProxyError):
     """
-
     @param string: problematic datestring
     """
-
     def __init__(self, string):
         self.args = "Invalid date string encountered: %s" % string
 
@@ -37,15 +35,23 @@ class InvalidDateStringError(BatchProxyError):
 class _EmptyColumn():
     """ Simple placeholder class for
     representing empty columns.
-
-    Conceptual subtype of None.
-
     """
     def __iter__(self):
         return iter((None,))
         
         
 EmptyColumn = _EmptyColumn()
+
+
+def _not_empty(other: str) -> int:
+    """
+    @param other: str to check
+    @return: bool
+    Simple helper func to pass as predicate
+    to itertools.takewhile() when reading
+    batch file.
+    """
+    return other != ''
 
 
 class ProxyListBase(list, BatchBase):
@@ -90,20 +96,44 @@ class Times(ProxyListBase):
     Note on times-as-floats: all times are relative to 12/31/1899
     This is the reference point for Excel, so it is what we use. 
     """
-    
+
     def __init__(self, times):
-        
-        raw = [time.strip() for time in times if time.strip()]
+
+        # similar to values.__init__, optimize this initialization
+        gen = (time.strip() for time in times)
+        raw = list(takewhile(_not_empty, gen))
         fmt = self._parse_date_fmt(raw[0])
         
         strptime = self.strptime
-        super().__init__(strptime(date, fmt) for date in raw)
-        
+        try:
+            super().__init__(strptime(date, fmt) for date in raw)
+        except ValueError:
+            self.clear()
+            self._bad_init(raw, fmt)
+
         self._raw = raw
         self._fmt = fmt
         self._floats = None 
         self._elapsed_times = None
-    
+
+    def _bad_init(self, raw: list, fmt: str):
+
+        strptime = self.strptime
+        parse = self._parse_date_fmt
+
+        good = []
+
+        for date in raw:
+            try:
+                parsed = strptime(date, fmt)
+            except ValueError:
+                fmt = parse(date)
+                parsed = strptime(date, fmt)
+
+            good.append(parsed)
+
+        super().__init__(good)
+
     @property
     def Datestrings(self):
         return self._raw
@@ -118,12 +148,11 @@ class Times(ProxyListBase):
             self._floats = self.as_floats()
         return self._floats
                                   
-    def as_floats(self):
+    def as_floats(self, xl_zero=ProxyListBase.strptime('12/31/1899', '%m/%d/%Y')):
         """ Calculate datetimes into floats.
         Requires first building list of datetimes. 
         """
-        
-        xl_zero = self.strptime('12/31/1899', '%m/%d/%Y')
+
         td2float = self._timedelta_to_float
         
         return [td2float(dt - xl_zero) for dt in self]
@@ -159,15 +188,16 @@ class Values(ProxyListBase):
     """
     
     def __init__(self, values):
-        
-        super().__init__(float(value.strip()) for value in values if value.strip() != '')
-        
-#     def __str__(self):
-#         out_str = '\n'.join((
-#                              "Batch Parameter Values (%d):" % len(self),
-#                              '\n'.join(str(val) for val in self)
-#                              )) 
-#         return out_str       
+
+        # Use a generator and takewhile to optimize this a bit
+        # since profiling showed this to be one of the slowest loops
+        # first generator strips values.
+        # takewhile aborts after first generator returns a string that is ''
+        # final generator converts value to float for the list.
+
+        gen = (v.strip() for v in values)
+        has_value = takewhile(_not_empty, gen)
+        super().__init__(float(value) for value in has_value)
 
 
 class Parameter(BatchBase):
@@ -260,7 +290,10 @@ class Parameter(BatchBase):
     def itervalues(self):
         for value in self._values:
             yield value
-            
+
+    def __getslice__(self, slice_arg):
+        return list(zip(self._times[slice_arg], self._values[slice_arg]))
+
     def __iter__(self):
 
         for data_point in zip(self._times, self._values):
@@ -321,8 +354,9 @@ class BatchFile(OrderedDict, BatchBase):
     def __init__(self, filename):
         
         super().__init__()
-        
-        self.Filename = filename
+        filename = getFullLibraryPath(filename)
+        self._filename = filename
+        self._create_data()
 
     def get(self, key, default=None):
         """
@@ -395,18 +429,20 @@ class BatchFile(OrderedDict, BatchBase):
                 raise BatchFileError("Error occurred trying to make %s in batch file " % header + self.Filename) from e
             
             self[header] = param
+
+    @classmethod
+    def fromMapping(cls, mapping: dict):
+        new = cls.__new__(cls, None)
+        OrderedDict.__init__(new)
+        for key in mapping:
+            new[key] = mapping[key]
+
+        return new
          
     @property
     def Filename(self):
         return self._filename
-        
-    @Filename.setter
-    def Filename(self, filename):
-        
-        filename = getFullLibraryPath(filename)
-        self._filename = filename
-        self._create_data()
-        
+
     def xlColumns(self):
         """ Build the list of headers 
         and data together in a format that can easily
@@ -430,7 +466,7 @@ class BatchFile(OrderedDict, BatchBase):
         for parameter in self.values():
             
             headers.extend(parameter.xlHeaders())
-            data.extend(parameter.xlColumns())  # iterable None for zip_longest
+            data.extend(parameter.xlColumns())
         
         return headers, data
         
