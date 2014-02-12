@@ -1,17 +1,17 @@
-'''snippet used to generate file:
+"""snippet used to generate file:
 
 import ctypes.wintypes
 from win32com.shell import shell, shellcon
 import types
 
 with open("C:\\Users\\PBS Biotech\\Documents\\Personal\\PBS_Office\\MSOffice\\officelib\\shellconst.py", 'w') as f:
-    
+
     for var in dir(shellcon):
-        
+
         if not var.startswith('__'):
             value = getattr(shellcon, var)
 #             print(value)
-            
+
             if isinstance(value, int):
                 value = str(value)
             elif isinstance(value, str):
@@ -21,9 +21,9 @@ with open("C:\\Users\\PBS Biotech\\Documents\\Personal\\PBS_Office\\MSOffice\\of
                 value = str(value[0])
             else:
                 continue
-                
+
             f.write(''.join([var, ' = ', value, '\n']))
-'''
+"""
 
 
 ABE_BOTTOM = 3

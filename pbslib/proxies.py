@@ -7,9 +7,10 @@ Created on Jan 16, 2014
 Proxies for objects like Times, PVs, Parameters, etc
 
 """
+from datetime import datetime
 
 from officelib.pbslib.batchbase import BatchBase, BatchError  # @UnresolvedImport
-from officelib.pbslib.batchutil import ExtractCSV, groupHeaderData  # @UnresolvedImport
+from officelib.pbslib.batchutil import ExtractDataReport, GroupHeaderData  # @UnresolvedImport
 from officelib.olutils import getFullLibraryPath
 from collections import Counter, OrderedDict
 from itertools import zip_longest, islice, takewhile
@@ -102,9 +103,9 @@ class Times(ProxyListBase):
         # similar to values.__init__, optimize this initialization
         gen = (time.strip() for time in times)
         raw = list(takewhile(_not_empty, gen))
-        fmt = self._parse_date_fmt(raw[0])
+        fmt = self.parse_date_fmt(raw[0])
         
-        strptime = self.strptime
+        strptime = datetime.strptime
         try:
             super().__init__(strptime(date, fmt) for date in raw)
         except ValueError:
@@ -118,8 +119,8 @@ class Times(ProxyListBase):
 
     def _bad_init(self, raw: list, fmt: str):
 
-        strptime = self.strptime
-        parse = self._parse_date_fmt
+        strptime = datetime.strptime
+        parse = self.parse_date_fmt
 
         good = []
 
@@ -148,12 +149,12 @@ class Times(ProxyListBase):
             self._floats = self.as_floats()
         return self._floats
                                   
-    def as_floats(self, xl_zero=ProxyListBase.strptime('12/31/1899', '%m/%d/%Y')):
+    def as_floats(self, xl_zero=datetime.strptime('12/31/1899', '%m/%d/%Y')):
         """ Calculate datetimes into floats.
         Requires first building list of datetimes. 
         """
 
-        td2float = self._timedelta_to_float
+        td2float = self._td2float
         
         return [td2float(dt - xl_zero) for dt in self]
         
@@ -304,7 +305,7 @@ class Parameter(BatchBase):
                               '\n',
                               str(t), 
                               '   ', 
-                              str(v))) for t,v in zip(self._times, self._values))   
+                              str(v))) for t, v in zip(self._times, self._values))
         return param_repr
     
     def ShowData(self):
@@ -418,9 +419,9 @@ class BatchFile(OrderedDict, BatchBase):
 
         # Dispatch handling of input and data
         filename = self._filename
-        headers, raw_data = ExtractCSV(filename)
+        headers, raw_data = ExtractDataReport(filename)
         
-        for header, (times, pvs, _empty) in groupHeaderData(headers, raw_data):
+        for header, (times, pvs, _empty) in GroupHeaderData(headers, raw_data):
 
             try:
                 param = Parameter(header, times, pvs)
@@ -497,7 +498,7 @@ class BatchFile(OrderedDict, BatchBase):
         cells = ws.Cells
         cell_range = cells.Range
         
-        header_range = cell_range(cells(1,1),
+        header_range = cell_range(cells(1, 1),
                                   cells(1, columns))
         data_range = cell_range(cells(2, 1),
                                 cells(rows + 1, columns))

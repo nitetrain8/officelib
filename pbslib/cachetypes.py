@@ -1,4 +1,4 @@
-'''Here for completion. A standard doubly linked list
+"""Here for completion. A standard doubly linked list
         appends and pops by index instead of keys.''''''
 Created on Jan 10, 2014
 
@@ -9,11 +9,11 @@ Created on Jan 10, 2014
 Module to hold special container types used
 for PBS lib caching schemes.
 
-These abstract the implementation details of 
+These abstract the implementation details of
 how the cache decides to push/flush/pop/purge/clear etc
 away from the classes themselves.
 
-'''
+"""
 from sys import getsizeof as sizeof
 
 
@@ -42,8 +42,8 @@ class LinkedListBase(_Link):
         
     def _insert_after(self, link, prev_link):
         
-        '''Insert the given link object after the other
-        given link'''
+        """Insert the given link object after the other
+        given link"""
         
         next_link = prev_link._next
         
@@ -57,8 +57,8 @@ class LinkedListBase(_Link):
     
     def _remove_link(self, link):
         
-        ''' Decrement link counter, shuffle references.
-            remove link's references'''
+        """ Decrement link counter, shuffle references.
+            remove link's references"""
         
         prev_link = link._prev
         next_link = link._next
@@ -72,12 +72,12 @@ class LinkedListBase(_Link):
         self._num_links -= 1
         
     def _move_link_to_front(self, link):
-        '''remove link and move after self'''
+        """remove link and move after self"""
         self._remove_link(link)
         self._insert_after(link, self)
         
     def _move_link_to_end(self, link):
-        '''remove link and move before self'''
+        """remove link and move before self"""
         self._remove_link(link)
         self._insert_after(link, self._prev)
     
@@ -113,8 +113,8 @@ class LinkedListBase(_Link):
 
 class DoublyLinkedList(LinkedListBase):
     
-    '''Since I made a doubly linked list, might as well move the 
-    implementation out of the Data Cache, so I can finish it properly later'''
+    """Since I made a doubly linked list, might as well move the
+    implementation out of the Data Cache, so I can finish it properly later"""
     
     def __init__(self, iterable=None):
         
@@ -131,7 +131,7 @@ class DoublyLinkedList(LinkedListBase):
             current = current._next
         
     def popitem(self, index=None):
-        '''Pop index, or return popfirst'''
+        """Pop index, or return popfirst"""
         if not self._num_links:
             raise ValueError("Can't pop empty list")
         
@@ -143,7 +143,7 @@ class DoublyLinkedList(LinkedListBase):
         return link._value
             
     def popfirst(self):
-        '''Pop the first item in the list'''
+        """Pop the first item in the list"""
         if not self._num_links:
             raise ValueError("Can't pop empty list")
             
@@ -153,7 +153,7 @@ class DoublyLinkedList(LinkedListBase):
         return link._value
         
     def poplast(self):
-        '''Pop the last item in the list'''
+        """Pop the last item in the list"""
         if not self._num_links:
             raise ValueError("Can't pop empty list")
             
@@ -189,21 +189,21 @@ class DoublyLinkedList(LinkedListBase):
         return index
     
     def _get_link_by_index(self, index):
-        ''' Get a link based on the index.
-            Start scan at head of the list. '''
+        """ Get a link based on the index.
+            Start scan at head of the list. """
         current = self._next
         for _i in range(index):
             current = current._next
         return current
         
     def _remove_link_by_index(self, index):
-        '''Remove and return a link by index'''
+        """Remove and return a link by index"""
         link = self._get_link_by_index(index)
         self._remove_link(link)
         return link
 
     def __contains__(self, value):
-        '''Iterate through self and return true if keys is found'''
+        """Iterate through self and return true if keys is found"""
         current = self._next
         while current is not self:
             if value == current._value:
@@ -217,7 +217,7 @@ class DoublyLinkedList(LinkedListBase):
         self._move_link_to_front(link)
 
     def move_to_end(self, index):
-        '''Move item to the end of the list'''
+        """Move item to the end of the list"""
         link = self._get_link_by_index(index)
         self._move_link_to_end(link)
             
@@ -235,14 +235,14 @@ class DoublyLinkedList(LinkedListBase):
                 
         
 class DoublyLinkedListDict(DoublyLinkedList):
-    '''1/16/2014- I've realized there's no reason
-    to have a datacache class without also having the 
+    """1/16/2014- I've realized there's no reason
+    to have a datacache class without also having the
     base dict class so that I have access to both if I need.
-    
+
     Just have DataCacheOld inherit and override the one
     or two methods in which it checks its len.
-    
-    '''
+
+    """
     
     __slots__ = []
     
@@ -280,14 +280,14 @@ class DoublyLinkedListDict(DoublyLinkedList):
         del link
         
     def __getitem__(self, keys):
-        ''' Instead of accessing list by index, access by keys.
-            while this is O(n), it allows lookup by keys easily.'''
+        """ Instead of accessing list by index, access by keys.
+            while this is O(n), it allows lookup by keys easily."""
         link = self._get_link_by_key(keys)
         return link._value
         
     def __setitem__(self, keys, value):
-        ''' Instead of accessing list by index, access by keys.
-            while this is O(n), it allows lookup by keys easily.'''
+        """ Instead of accessing list by index, access by keys.
+            while this is O(n), it allows lookup by keys easily."""
             
         ''' If keys in self, get the link and set its value,
             and return. '''
@@ -312,7 +312,7 @@ class DoublyLinkedListDict(DoublyLinkedList):
             return default
                     
     def popitem(self, keys=None):
-        '''Pop keys-value pair by keys, or return popfirst'''
+        """Pop keys-value pair by keys, or return popfirst"""
         if not self._num_links:
             raise ValueError("Can't pop empty list")
         
@@ -324,7 +324,7 @@ class DoublyLinkedListDict(DoublyLinkedList):
         return (link._key, link._value)
             
     def popfirst(self):
-        '''Pop the first item in the list'''
+        """Pop the first item in the list"""
         if not self._num_links:
             raise ValueError("Can't pop empty list")
             
@@ -334,7 +334,7 @@ class DoublyLinkedListDict(DoublyLinkedList):
         return (link._key, link._value)
         
     def poplast(self):
-        '''Pop the last item in the list'''
+        """Pop the last item in the list"""
         if not self._num_links:
             raise ValueError("Can't pop empty list")
             
@@ -343,8 +343,8 @@ class DoublyLinkedListDict(DoublyLinkedList):
         return (link._key, link._value)
     
     def _get_link_by_key(self, keys):
-        ''' Used internally to return the link object (instead of just 
-            value, keys, or keys-value pair.'''
+        """ Used internally to return the link object (instead of just
+            value, keys, or keys-value pair."""
         current = self._next
         while current is not self:
             if keys == current._key:
@@ -353,7 +353,7 @@ class DoublyLinkedListDict(DoublyLinkedList):
         raise KeyError("%s not found" % keys)
         
     def __contains__(self, keys):
-        '''Iterate through self and return true if keys is found'''
+        """Iterate through self and return true if keys is found"""
         current = self._next
         while current is not self:
             if keys == current._key:
@@ -373,7 +373,7 @@ class DoublyLinkedListDict(DoublyLinkedList):
         self._move_link_to_front(link)
 
     def move_to_end(self, keys):
-        '''Move item to the end of the list'''
+        """Move item to the end of the list"""
         link = self._get_link_by_key(keys)
         self._move_link_to_end(link)
         
@@ -383,25 +383,25 @@ class DoublyLinkedListDict(DoublyLinkedList):
         
         
 class DataCacheOld(DoublyLinkedListDict):
-    '''Simple subclass to automatically implement limited caching 
+    """Simple subclass to automatically implement limited caching
        behavior.
-       
-       If items < 10? set item. Items > 10? Pop the least-recently 
-       accessed item. 
-       
+
+       If items < 10? set item. Items > 10? Pop the least-recently
+       accessed item.
+
        Todo: heuristic for determining access?
-       last lookup, # of lookups, recent lookup bias 
-       
+       last lookup, # of lookups, recent lookup bias
+
        append/pop : right side == first accessed
        appendleft/popleft : left side == last accessed
-       
-       creating a doubly linked list because it should use less 
+
+       creating a doubly linked list because it should use less
        mem than a dict (by a lot)
-       
+
        Update 1/13/2014:
-       instead of a dictionary, this is now a doubly linked list. This 
-       should save a significant amount of memory. 
-    '''
+       instead of a dictionary, this is now a doubly linked list. This
+       should save a significant amount of memory.
+    """
     
     __default_max_cache = 10
     __slots__ = [
@@ -423,15 +423,15 @@ class DataCacheOld(DoublyLinkedListDict):
             self.poplast()
         
     def __getitem__(self, keys):
-        ''' Instead of accessing list by index, access by keys.
-            while this is O(n), it allows lookup by keys easily.'''
+        """ Instead of accessing list by index, access by keys.
+            while this is O(n), it allows lookup by keys easily."""
         link = self._get_link_by_key(keys)
         self._move_link_to_front(link)
         return link._value
         
     def __setitem__(self, keys, value):
-        ''' Instead of accessing list by index, access by keys.
-            while this is O(n), it allows lookup by keys easily.'''
+        """ Instead of accessing list by index, access by keys.
+            while this is O(n), it allows lookup by keys easily."""
             
         ''' If keys in self, get the link and set its value,
             and return. '''
@@ -460,8 +460,8 @@ class DataCacheOld(DoublyLinkedListDict):
 
     def _insert_after(self, link, prev_link):
         
-        '''Insert the given link object after the other
-        given link'''
+        """Insert the given link object after the other
+        given link"""
         
         next_link = prev_link._next
         
@@ -478,12 +478,12 @@ from collections import OrderedDict
 
 class DataCache(OrderedDict):
     
-    '''Ordered dict only uses ~ 3x the memory
-    of DoublyLinkedListDict, but has instant 
+    """Ordered dict only uses ~ 3x the memory
+    of DoublyLinkedListDict, but has instant
     access to keys instead of some horrible lookup
     time. Screw this experiment, just use ordereddict.
-    
-    '''
+
+    """
     
     __default_max_cache = 10
     
@@ -509,20 +509,20 @@ class DataCache(OrderedDict):
             _dict_popitem_(self, True)
             
     def __getnomove__(self, key, _dict_get_=dict.__getitem__):
-        '''Provide a way to get an item without moving to end'''
+        """Provide a way to get an item without moving to end"""
         
         return _dict_get_(self, key)
             
     def items(self):
-        '''Iterating through keys, items or values gets screwed
+        """Iterating through keys, items or values gets screwed
         up into an infinite loop, because it forces a call
         to getitem, which causes iter->next to always call
         the recently accessed item instead of the actual next.
-        
-        So, items(), keys(), and values() need to all be 
-        reimplemented here to get a full list of keys 
-        before attempting to return them. 
-        '''
+
+        So, items(), keys(), and values() need to all be
+        reimplemented here to get a full list of keys
+        before attempting to return them.
+        """
         
         keys = tuple(iter(self))
         for key in keys:
@@ -683,4 +683,3 @@ if __name__ == '__main__':
     
     
         
-    

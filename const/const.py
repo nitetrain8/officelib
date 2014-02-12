@@ -1,8 +1,8 @@
-'''
+"""
 Created on Oct 7, 2013
 
 @author: PBS Biotech
-'''
+"""
 ''' List of wincom constants extracted from
 win32com gencache generated constants list using this:
     

@@ -1,22 +1,22 @@
-'''
+"""
 Created on Jan 10, 2014
 
 @Company: PBS Biotech
 @Author: Nathan Starkweather
 
 
-Created to handle managing of automatically 
+Created to handle managing of automatically
 generating property aliases.
 
 This can be done by hand, but this module
-provides an easier way to create them 
-while ensuring safety, and auto-management of 
-weak/strong aliases when developing interfaces. 
-'''
+provides an easier way to create them
+while ensuring safety, and auto-management of
+weak/strong aliases when developing interfaces.
+"""
 
 
 class AliasError(Exception):
-    '''Base exception for alias errors'''
+    """Base exception for alias errors"""
     pass
 
 
@@ -42,35 +42,35 @@ class AliasCreationError(AliasError):
 
 def _createPropertyAlias(cls, properties, namerule=None, raise_on_conflict=True):
     
-    '''Operate on a class to make aliases. 
-    
+    """Operate on a class to make aliases.
+
     Cls- Class object to operate on.
-    
+
     properties- Map attribute name to a list of aliases.
-                
+
                 If namerule is None, must be a dict which maps
                 attribute names to an iterable of aliases to use.
-                
+
                 If namerule is not None, properties is accessed
                 as an iterable of properties to pass to namerule. If
                 a dict is passed, attribute names are pulled from
-                properties.keys() 
-    
+                properties.keys()
+
     namerule-   Optional callback function that takes an attribute name
                 and returns an iterable of aliases to use.
-                
+
                 Default is None. If None, properties is accessed as a dict
-                to map names to aliases. 
-                
-                If not None, any mapping of attribue names to aliases 
+                to map names to aliases.
+
+                If not None, any mapping of attribue names to aliases
                 will ignored.
-                
-    raise_on_confict- 
+
+    raise_on_confict-
                 If a naming conflict arises, raise AliasExistsError.
                 If set to false, silently ignore conflict and move on.
-    
-    
-    '''
+
+
+    """
 
     if namerule is None:
         attrs = properties.keys()
@@ -113,15 +113,15 @@ def _createPropertyAlias(cls, properties, namerule=None, raise_on_conflict=True)
 
 
 class AliasManager():
-    ''' Class to encapsulate management of alias
+    """ Class to encapsulate management of alias
         creation
-    
+
         This is kind of tricky, since we can't use a metaclass
         for applying aliases, but we have to pop all alias
         references from the class dict before creating the class
         so this requires cooperation from the interface.
-    
-    '''
+
+    """
 
     def __init__(self, *, weak_alias=None, 
                             weak_alias_namerule=None, 
@@ -225,7 +225,6 @@ class AbstractAliasHandler(type):
     
     
             
-    
     
     
     

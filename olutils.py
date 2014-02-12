@@ -284,13 +284,16 @@ def _lib_path_search_dir_list_builder(folder_hint, *folder_hints):
     return folders
 
 
-def getFullLibraryPath(path, hint=None, *, verbose=True):
+def getFullLibraryPath(path: str, hint: str=None, *, verbose: int=True) -> str:
     """ Function to get full library path. Figure out
     what's in the path iteratively, based on 3 common scenarios.
 
     @param path: a filepath or filename
+    @type path: str
     @param hint: the first directory tree in which to search for the file
+    @type hint: str
     @return: full library path to existing file.
+    @rtype: str
 
     Try to find the path by checking for three common cases:
 
@@ -310,7 +313,6 @@ def getFullLibraryPath(path, hint=None, *, verbose=True):
     everything even worse. Having it defined within this function allows
     it to access path, etc variables without having to explicitly call them.
     In all, there is much less text in the areas in which the dispatch is called.
-
     """
 
     if not path:
@@ -341,10 +343,10 @@ def getFullLibraryPath(path, hint=None, *, verbose=True):
             except:
                 pass
 
-        # Raise if failed to return
-        err_msg = '\n'.join(("Couldn't find \'%s\' in the following places:\n" % path,
-                            '\n'.join(search_dirs)))
-        raise NameError(err_msg)
+        else:
+            err_msg = '\n'.join(("Couldn't find \'%s\' in the following places:\n" % path,
+                                '\n'.join(search_dirs)))
+            raise NameError(err_msg)
 
     # Most likely- given a filename with no base, but with extension
     if (not basename) and ext:
@@ -370,13 +372,8 @@ def getFullLibraryPath(path, hint=None, *, verbose=True):
         v_print("\nNo context given for filename, scanning for file.\nIf you give a full filepath, you wouldn't \nhave to wait for the long search.")
         return do_dispatch(_get_lib_path_no_ctxt)
 
-    # Raise if everything fell through (somehow).
     else:
         raise NameError("Unable to find file %s" % path)
-
-    # Leave unreachable NameError in case of refactoring.
-    # noinspection PyUnreachableCode
-    raise NameError("Unable to find file %s" % path)
 
 
 def ListFullDir(dirname, os_listdir=os.listdir):

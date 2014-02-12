@@ -1,9 +1,9 @@
-'''
+"""
 Created on Jan 10, 2014
 
 @Company: PBS Biotech
 @Author: Nathan Starkweather
-'''
+"""
 
 
 from os.path import exists
@@ -37,8 +37,8 @@ class BatchTime(BatchBase):
     
 '''Proxy/virtual representation container classes'''
 class Parameter(BatchBase):
-    '''Anything needed here for special parameters?
-    '''
+    """Anything needed here for special parameters?
+    """
     def __init__(self, name, xvalues, yvalues):
         self._name = name
         self._xvalues = xvalues
@@ -78,15 +78,15 @@ class Parameter(BatchBase):
 
 class BatchFile(AbstractDataHandler):
     
-    '''Interface to accessing data of a batch file
-    
+    """Interface to accessing data of a batch file
+
     Since this interface is its own window into the batch file,
     no need to set up any special caching scheme, other than
-    a reference to the single dict. 
-    
+    a reference to the single dict.
+
     Todo: incorporate into BatchHandler class as default container?
             then use class as cache object instead of dict.
-    '''
+    """
     
     def __init__(self, filename, Handler=None):
         
@@ -144,32 +144,32 @@ class BatchFile(AbstractDataHandler):
     
 class BatchHandler(AbstractDataHandler):
     
-    ''' Class to encapsulate manipulation of batch data outside of 
+    """ Class to encapsulate manipulation of batch data outside of
         Excel.
-        
+
         Feed in a list of files (complete with pathname!), call functions to
         analyze data.
-        
-        Primary interface should be through dictionaries which return 
+
+        Primary interface should be through dictionaries which return
         dicts of Parameter: [Time][PV] based on filename.
-         
-        Nested dictionaries, yay. 
-        
+
+        Nested dictionaries, yay.
+
         Since columns are always in order of Time, PV, it may be easier to
         just return them as lists or tuples instead of bothering to make time
-        and pv a nested dict. 
-        
+        and pv a nested dict.
+
         Data is cached and purged on a last-called-first-purged basis,
         to prevent having to repeatedly process lots of batch files. However,
-        data can add up, so gotta beware.  
-        
-        Since usually we're only interested in contents of a few sets of 
-        data, need to add an interface for accessing only those contents. 
-        
+        data can add up, so gotta beware.
+
+        Since usually we're only interested in contents of a few sets of
+        data, need to add an interface for accessing only those contents.
+
         Update 1/9/2014:
         Most implementation details moved to superclass AbstractDataHandler.
-        
-        '''
+
+        """
         
     #max number of dicts full of data to keep around.
     max_cache = 10
@@ -200,8 +200,8 @@ class BatchHandler(AbstractDataHandler):
         
     def getDataDict(self, batch_file):
     
-        '''Main public interface for accessing data from Handler's 
-        batch files. '''
+        """Main public interface for accessing data from Handler's
+        batch files. """
         try:
             return self._cache[batch_file]
         except KeyError:
@@ -213,7 +213,7 @@ class BatchHandler(AbstractDataHandler):
         return data
         
     def rebuildDataDict(self, batch_file):
-        '''Implementation of building data dict thingy'''
+        """Implementation of building data dict thingy"""
         
         data = self._make_data_dict(batch_file)
         self._cache[batch_file] = data
@@ -250,10 +250,10 @@ FUNC_TEST_FOLDER = "C:\\Users\\Public\Documents\\PBSSS\\Functional Testing"
 
 #this function is poorly named
 def get_logger_data(cells, parameter, *, return_structure=list):
-    '''given cells object (search space),
-    search for string parameter, return date 
+    """given cells object (search space),
+    search for string parameter, return date
     and value column data
-    '''
+    """
     date_cell = cells.Find(What=parameter, After=cells(1,1), SearchOrder=xlByRows)
     pv_cell = cells.Find(What=parameter, After=cells(1,date_cell.Column), SearchOrder=xlByRows)
        

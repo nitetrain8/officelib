@@ -8,11 +8,12 @@ Misc utility functions as necessary
 
 """
 
-from itertools import zip_longest, islice
-from datetime import datetime
+from itertools import zip_longest, islice, chain
+from _strptime import _regex_cache, _TimeRE_cache
+
 
 def grouper(iterable, n):
-    """Itertools group recipe. Swallow pride."""
+    """Itertools group recipe"""
     args = [iter(iterable)] * n
     return zip_longest(*args, fillvalue=None)
     
@@ -21,23 +22,30 @@ def FilterIndexRange(data, cb=bool, islice=islice):
     """ Return first occurrence range in data where cb(x) is true.
     Index of first time true, until first time not true.
     Ignore subsequent dips into and out of range.
+
+    Stupid function do not use.
     """
     try:
-        start = next(i for i,v in enumerate(data) if cb(v))
+        start = next(i for i, v in enumerate(data) if cb(v))
     except StopIteration:
         start = None
         try:
-            end = next(i for i,v in enumerate(islice(data, 0, None), 0) if not cb(v))
+            end = next(i for i, v in enumerate(islice(data, 0, None), 0) if not cb(v))
         except StopIteration:
             end = None
     else:
-        end = next(i for i,v in enumerate(islice(data, start, None), start) if not cb(v))
+        end = next(i for i, v in enumerate(islice(data, start, None), start) if not cb(v))
     
     return start, end    
 
 
-def ExtractCSV(filename):
-    
+def ExtractDataReport(filename: str) -> tuple:
+    """
+    @param filename: name of data report to open
+    @type filename: str
+    @return: headers and data from data report
+    @rtype: (list[str], list[str])
+    """
 
     with open(filename, 'r') as f:
         headers = f.readline().split(',')
@@ -48,18 +56,16 @@ def ExtractCSV(filename):
     return headers, data
     
     
-def groupHeaderData(headers, data):
+def GroupHeaderData(headers, data):
     return zip(headers[::3], grouper(data, 3))    
 
 
 known_date_fmts = [
                 "%m/%d/%Y %I:%M:%S %p",
-                '%m/%d/%y %I:%M %p',
-                "%m/%d/%Y %H:%M"
+                "%m/%d/%y %I:%M %p",
+                "%m/%d/%Y %H:%M",
+                "%m/%d/%Y"
                 ]
-
-
-from _strptime import _regex_cache, _TimeRE_cache
 
 
 def __fast_parse_date(date_string: str, fmt: str, regex_cache=_regex_cache, TimeRE_cache=_TimeRE_cache) -> int:
@@ -83,10 +89,17 @@ def __fast_parse_date(date_string: str, fmt: str, regex_cache=_regex_cache, Time
     return bool(format_regex.match(date_string))
 
 
-def ParseDateFormat(date, guess: str=None, known: list=known_date_fmts, parse=__fast_parse_date) -> str:
-
-    """Parse date format, return the format the string is in.
+def ParseDateFormat(date: str, guess: str=None, known: list=known_date_fmts, parse=__fast_parse_date) -> str:
+    """ Parse date format, return the format the string is in.
     Test from a known list of date formats.
+
+    @param date: date string to scan
+    @type date: str
+    @param guess: optional date string to try first
+    @type guess: str
+    @param known: known list of possible formats to try
+    @type known: list[str]
+    @param parse: inline reference to the fast parse function
     """
 
     if guess:
@@ -100,6 +113,14 @@ def ParseDateFormat(date, guess: str=None, known: list=known_date_fmts, parse=__
     raise ValueError("Invalid date string format : '%s'" % date)
 
 
+def flatten(iterable_of_iterables):
+    """
+    @param iterable_of_iterables: iterable of iterables
+    @type iterable_of_iterables: collections.Iterable
+    @return: flattened iterable
+    @rtype: itertools.chain
+    """
+    return chain.from_iterable(iterable_of_iterables)
 
     
     
