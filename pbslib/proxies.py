@@ -352,9 +352,19 @@ class BatchFile(OrderedDict, BatchBase):
     Parameters are instances of class Parameter.
 
     """
-    def __init__(self, filename):
-        
+    def __init__(self, filename=None):
         super().__init__()
+        if filename is not None:
+            self.ProcessFile(filename)
+        self._filename = filename
+
+    def ProcessFile(self, filename):
+        """
+        @param filename: filename to process
+        @type filename: str
+        @return: None
+        @rtype: None
+        """
         filename = getFullLibraryPath(filename)
         self._filename = filename
         self._create_data()
@@ -517,7 +527,32 @@ class BatchFile(OrderedDict, BatchBase):
     @property
     def ColumnCount(self):
         return sum(p.ColumnCount for p in self.Parameters)
-        
+
+    # Support pickling.
+    # pickle calls init of dict subclasses, but this causes ours
+    # to screw up a bit.
+
+    def __reduce__(self):
+        dict_copy = self.__dict__.copy()
+        return _BatchFile_pickle_init, tuple(), dict_copy, None, ((k, self[k]) for k in self)
+
+
+def _BatchFile_pickle_init():
+    """
+    Because BatchFile inherits dict (via OrderedDict)
+    but does funky stuff in its constructor,
+    it needs a special pickling protocol, because
+    dict subclasses' __init__ methods are called by pickle.
+
+    This function returns an empty batch file that bypasses
+    the normal batch file init method.
+
+    @return: empty batch file
+    @rtype: BatchFile
+    """
+    batch = BatchFile.__new__(BatchFile)
+    OrderedDict.__init__(batch)
+    return batch
 
 if __name__ == '__main__':
     testfile = 'C:/Users/PBS Biotech/Downloads/tpidinsulationp40i3stopat36.9.csv'

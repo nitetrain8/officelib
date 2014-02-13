@@ -117,8 +117,12 @@ def __ws_is_empty(ws):
     to be empty.
     @param ws: win32com.gen_py Worksheet
     """
-    
-    return ws.UsedRange is None
+    used_range = ws.UsedRange
+    count = used_range.Count
+    if count > 1:
+        return False
+    else:  # worksheet shows count of 1 for both empty and only single cell
+        return bool(used_range.Columns) and bool(used_range.Rows)
 
 
 def __wb_is_empty(wb):
@@ -383,7 +387,7 @@ def EnsureNewDispatch(prog_id, bForDemand=1):  # New fn, so we default the new d
     return disp
 
 
-def changeBorders(RemoveRange=None, AddRange=None, BorderType=xlContinuous):
+def ChangeBorders(RemoveRange=None, AddRange=None, BorderType=xlContinuous):
     """Expanding borders in excel is REALLY ugly.
     @param: RemoveRange
         cell range to RemoveRange borders from
@@ -477,10 +481,27 @@ def CreateChart(worksheet,
                 Height=CHART_HEIGHT_DEFAULT):
     """Nothing special here. Adding an excel chart involves some required parameters,
     so might as well create a python function that takes care of setting defaults if
-    not otherwise specified. """
+    not otherwise specified.
+
+    @param worksheet: worksheet instance
+    @type worksheet: win32com.gen_py.typehint0x1x6._Worksheet._Worksheet
+    @param ChartType: type of chart as xl enum
+    @type ChartType: int
+    @param Left: offset from left edge of sheet in points
+    @type Left: int
+    @param Top: offset from top edge of sheet in points
+    @type Top: int
+    @param Width: width of chart in points
+    @type Width: int
+    @param Height: height of chart in points
+    @type Height: int
+    """
 
     chart_count = worksheet.ChartObjects().Count
-    
+
+    # These two snippets, when used to create a bunch of charts,
+    # will create each new chart in two columns going down at
+    # the beginning of the worksheet.
     if Left is None:
         Left = 20 + chart_count * (20 + Width) * (chart_count % 2)
 
@@ -490,29 +511,50 @@ def CreateChart(worksheet,
     chartobj = worksheet.ChartObjects().Add(Left=Left, Top=Top, Width=Width, Height=Height)
     chart = chartobj.Chart
     chart.ChartType = ChartType
+
+    PurgeSeriesCollection(chart)
     
     return chart
 
 
-def formatChart(chart, *,
+def FormatChart(chart,
                 SourceData=None,
                 ChartTitle=None,
                 xAxisTitle=None,
                 yAxisTitle=None,
                 Trendline=None,
-                Legend=False):
-    """similar to create chart function, to take care of all the
-     annoying formatting I'd have to type out otherwise"""
+                Legend=None):
+    """ Similar to create chart function, to take care of all the
+     annoying formatting I'd have to type out otherwise.
+
+     None = Do nothing. Otherwise, use bool or str.
+
+    @param chart: chart object
+    @type chart: win32com.gen_py.typehint0x1x6._Chart._Chart
+    @param SourceData: source data as an address string with both X and Y values
+    @type SourceData: str | None
+    @param ChartTitle: chart title
+    @type ChartTitle: str | None
+    @param xAxisTitle: x axis title
+    @type xAxisTitle: str | None
+    @param yAxisTitle: yaxis title
+    @type yAxisTitle: str | None
+    @param Trendline: type of trendline (xl enum)
+    @type Trendline: int | bool | None
+    @param Legend: show legend on chart
+    @type Legend: bool | None
+     """
 
     if SourceData is not None:
         chart.SetSourceData(SourceData)
 
-    chart.HasLegend = Legend
+    if Legend is not None:
+        chart.HasLegend = Legend
 
     if ChartTitle is not None:
         chart.HasTitle = True
         if not isinstance(ChartTitle, str):
-            ChartTitle = str(ChartTitle)
+            ChartTitle = str(ChartTitle)  # allow objects to be used to identify charts
         chart.ChartTitle.Text = ChartTitle
 
     axes = chart.Axes(AxisGroup=xlPrimary)
@@ -522,28 +564,43 @@ def formatChart(chart, *,
     if xAxisTitle is not None:
         xAxis.HasTitle = True
         if not isinstance(xAxisTitle, str):
-            xAxisTitle = str(xAxisTitle)
+            xAxisTitle = str(xAxisTitle)  # allow objects to be used to identify x axis
         xAxis.AxisTitle.Text = xAxisTitle
 
     if yAxisTitle is not None:
         yAxis.HasTitle = True
         if not isinstance(yAxisTitle, str):
-            yAxisTitle = str(yAxisTitle)
+            yAxisTitle = str(yAxisTitle)  # allow objects to be used to identify y axis
         yAxis.AxisTitle.Text = yAxisTitle
 
     if Trendline is not None:
-        if Trendline is True:
+        if isinstance(Trendline, bool):
             Trendline = xlLinear
         AddTrendlines(chart, Trendline)
 
 
-def CreateDataSeries(
-                     chart,
+def CreateDataSeries(chart,
                      XValues,
                      YValues,
                      Name=None,
                      SeriesLabels=None,
                      CategoryLabels=None):
+    """
+    @param chart: chart to create data series for
+    @type chart: win32com.gen_py.typehint0x1x6._Chart._Chart
+    @param XValues: Address string in format "=SheetName!XStart:XEnd"
+    @type XValues: str
+    @param YValues: Address string in format "=SheetName!YStart:YEnd"
+    @type YValues: str
+    @param Name: Str or Address string in format "=SheetName!Cell"
+    @type Name: str
+    @param SeriesLabels: NotImplemented
+    @type SeriesLabels: NotImplemented
+    @param CategoryLabels: NotImplemented
+    @type CategoryLabels: NotImplemented
+    @return: New Data Series
+    @rtype: win32com.gen_py.typehint0x1x6.Series.Series
+    """
 
     if SeriesLabels is not None or CategoryLabels is not None:  # todo
         raise NotImplemented
@@ -563,6 +620,23 @@ def CreateDataSeries(
     return Series
 
 
+def PurgeSeriesCollection(chart):
+    for series in chart.SeriesCollection():
+        series.Delete()
+
+
+class VisibleXlGuard():
+    def __init__(self, xl):
+        self.xl = xl
+
+    def __enter__(self):
+        self.xl.Visible = False
+
+    def __exit__(self, *_args):
+        self.xl.Visible = True
+        return False
+
+
 if __name__ == '__main__':
     
     # insert unit tests here
@@ -570,12 +644,19 @@ if __name__ == '__main__':
     xl.Visible = True
 #     wb = xl.Workbooks.Add() 
     wb = xl.Workbooks(1)
-    ws = wb.Worksheets(1)
-    r = ws.UsedRange
-    print(r)
-    for ws in wb.Worksheets:
-        print(ws)
+
+    def make_win32com_typehints():
+        from shutil import copytree
+        d = "C:\\Python33\\Lib\\site-packages\\win32com\\gen_py\\"
+        f1 = "C:\\Python33\\Lib\\site-packages\\win32com\\gen_py\\00020813-0000-0000-C000-000000000046x0x1x6"
+        f2 = "C:\\Python33\\Lib\\site-packages\\win32com\\gen_py\\00020905-0000-0000-C000-000000000046x0x8x4"
+        copytree(f1, d + "typehint0x1x6")
+        copytree(f2, d + "typehint0x8x4")
 
 
-
+    # ws = wb.Worksheets(1)
+    # r = ws.UsedRange
+    # print(r)
+    # for ws in wb.Worksheets:
+    #     print(ws)
 
