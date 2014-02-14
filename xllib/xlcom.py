@@ -50,7 +50,7 @@ from officelib.olutils import getFullLibraryPath
 from officelib.const import xlLinear, xlByRows, xlDiagonalUp, xlContinuous, \
                                         xlDiagonalDown, xlNone, xlEdgeTop, \
                                         xlEdgeBottom, xlEdgeRight, xlEdgeLeft, xlInsideHorizontal, \
-                                        xlInsideVertical, xlXYScatter, xlPrimary
+                                        xlInsideVertical, xlXYScatter, xlPrimary, xlSecondary, xlCategory, xlValue
 from officelib import OfficeLibError
 
 
@@ -488,13 +488,13 @@ def CreateChart(worksheet,
     @param ChartType: type of chart as xl enum
     @type ChartType: int
     @param Left: offset from left edge of sheet in points
-    @type Left: int
+    @type Left: int | float
     @param Top: offset from top edge of sheet in points
-    @type Top: int
+    @type Top: int | float
     @param Width: width of chart in points
-    @type Width: int
+    @type Width: int | float
     @param Height: height of chart in points
-    @type Height: int
+    @type Height: int | float
     """
 
     chart_count = worksheet.ChartObjects().Count
@@ -579,6 +579,56 @@ def FormatChart(chart,
         AddTrendlines(chart, Trendline)
 
 
+def FormatAxesScale(chart, XAxisMin=None, XAxisMax=None, Y1AxisMin=None,
+                            Y1AxisMax=None, Y2AxisMin=None, Y2AxisMax=None):
+    """
+    @param chart: chart
+    @type chart: win32com.gen_py.typehint0x1x6._Chart._Chart
+    @param XAxisMin: minimum x axis
+    @type XAxisMin: float | int | None
+    @param XAxisMax: maximum y axis
+    @type XAxisMax: float | int | None
+    @param Y1AxisMin: minimum y1 (primary) axis
+    @type Y1AxisMin: float | int | None
+    @param Y1AxisMax: maximum y1 (primary) axis
+    @type Y1AxisMax: float | int | None
+    @param Y2AxisMin: minimum y2 (secondary) axis
+    @type Y2AxisMin: float | int | None
+    @param Y2AxisMax: maximum y2 (secondary) axis
+    @type Y2AxisMax: float | int | None
+    @return: None
+    @rtype: None
+
+    Excel records accessing chart axes as
+    chart(Type, AxisGroup). Axis group defaults to
+    primary, included here for clarity.
+
+    Only access axes if parameter is passed: otherwise,
+    exception may be thrown if accessing non-existent axis.
+    """
+
+    if XAxisMin or XAxisMax:
+        xAxis = chart.Axes(xlCategory, xlPrimary)
+        if XAxisMin:
+            xAxis.MinimumScale = XAxisMin
+        if XAxisMax:
+            xAxis.MaximumScale = XAxisMax
+
+    if Y1AxisMin or Y1AxisMax:
+        yAxis1 = chart.Axes(xlValue, xlPrimary)
+        if Y1AxisMin:
+            yAxis1.MinimumScale = Y1AxisMin
+        if Y1AxisMax:
+            yAxis1.MaximumScale = Y1AxisMax
+
+    if Y2AxisMin or Y2AxisMax:
+        yAxis2 = chart.Axes(xlValue, xlSecondary)
+        if Y2AxisMin:
+            yAxis2.MinimumScale = Y2AxisMin
+        if Y2AxisMax:
+            yAxis2.MaximumScale = Y2AxisMax
+
+
 def CreateDataSeries(chart,
                      XValues,
                      YValues,
@@ -625,7 +675,7 @@ def PurgeSeriesCollection(chart):
         series.Delete()
 
 
-class VisibleXlGuard():
+class HiddenXl():
     def __init__(self, xl):
         self.xl = xl
 
@@ -637,21 +687,25 @@ class VisibleXlGuard():
         return False
 
 
+def __make_win32com_typehints():
+    from shutil import copytree
+    d = "C:\\Python33\\Lib\\site-packages\\win32com\\gen_py\\"
+    f1 = "C:\\Python33\\Lib\\site-packages\\win32com\\gen_py\\00020813-0000-0000-C000-000000000046x0x1x6"
+    f2 = "C:\\Python33\\Lib\\site-packages\\win32com\\gen_py\\00020905-0000-0000-C000-000000000046x0x8x4"
+    copytree(f1, d + "typehint0x1x6")
+    copytree(f2, d + "typehint0x8x4")
+
 if __name__ == '__main__':
     
-    # insert unit tests here
+    # insert unit tests here (?)
     xl = EnsureDispatch("Excel.Application")
     xl.Visible = True
-#     wb = xl.Workbooks.Add() 
     wb = xl.Workbooks(1)
+    chart = wb.Charts("Off to Auto")
 
-    def make_win32com_typehints():
-        from shutil import copytree
-        d = "C:\\Python33\\Lib\\site-packages\\win32com\\gen_py\\"
-        f1 = "C:\\Python33\\Lib\\site-packages\\win32com\\gen_py\\00020813-0000-0000-C000-000000000046x0x1x6"
-        f2 = "C:\\Python33\\Lib\\site-packages\\win32com\\gen_py\\00020905-0000-0000-C000-000000000046x0x8x4"
-        copytree(f1, d + "typehint0x1x6")
-        copytree(f2, d + "typehint0x8x4")
+    FormatAxesScale(chart, *[1 for i in range(6)])
+
+
 
 
     # ws = wb.Worksheets(1)

@@ -22,10 +22,15 @@ def cellStr(row, col, AbsoluteColumn=False, AbsoluteRow=False):
         it really confusing.
 
         @param row: the row number eg 1 -> row 1
+        @type row: int
         @param col: the column number eg 1 -> column A
+        @type col: int
         @param AbsoluteColumn: use absolute column (insert '$' before column)
+        @type AbsoluteColumn: int
         @param AbsoluteRow: use absolute row (insert '$' before row)
+        @type AbsoluteRow: int
         @return: the excel-style spreadsheet range address.
+        @rtype: str
     """
 
     if row < 1 or col < 1:
@@ -48,18 +53,23 @@ def cellStr(row, col, AbsoluteColumn=False, AbsoluteRow=False):
                     str(row)))
 
 
-def cellRangeStr(cell1, cell2):
+def cellRangeStr(cell1, cell2, cellStr=cellStr):
     """ For those times you need an $A$1:$B$2 style
         cell reference
 
-    @param cell1/2: each is a tuple of (row/column[abscol[absrow]])
+    @param cell1: each is a tuple of (row/column[abscol[absrow]])
                     automatically unpacked by python and sent to cellStr.
                     See cellStr doc for params to cellStr
+    @type cell1: (int, int) | (int, int, int) | (int, int, int, int)
+    @type cell2: (int, int) | (int, int, int) | (int, int, int, int)
+    @param cell2: same as cell1
+
     @return: cellStr addresses joined by ':' eg A$1:$B$2
+    @rtype: str
     """
         
     return ':'.join((cellStr(*cell1), cellStr(*cell2)))
-    
+
 
 def xlrange(start, stop, step=1):
     """excel uses 1-based index, use xlrange

@@ -15,7 +15,9 @@ SHGFP_TYPE_CURRENT = 0  # Current value, not default value
 
 def getWorkDir():
 
-    """Get current user's Documents folder"""
+    """Get current user's Documents folder
+    @rtype: str
+    """
 
     # OS-specific attempt for Windows
     if os.name == 'nt':
@@ -48,8 +50,10 @@ def getWinUserDocs():
     """C/P from
     http://stackoverflow.com/questions/3858851/python-get-windows-special-folders-for-currently-logged-in-user#3859336
 
-    Convenience function to get current user's documents folder
+    Convenience function to get current user's documents folder.
+
     @return: user's docs folder.
+    @rtype: str
     """
 
     buf = ctypes.create_unicode_buffer(ctypes.wintypes.MAX_PATH)
@@ -62,9 +66,11 @@ def getWinUserDocs():
 
 
 def getWinCommonDocs():
-    """Convenience function to return the windows common docs folder
-    @return: common docs folder, or raise OSError.
+    """Convenience function to return the windows common docs folder.
+    Same source as above.
 
+    @return: common docs folder, or raise OSError.
+    @rtype: str
     """
 
     buf = ctypes.create_unicode_buffer(ctypes.wintypes.MAX_PATH)
@@ -76,7 +82,13 @@ def getWinCommonDocs():
 
 
 def getDownloadDir():
+    """
+    @return: filepath of download dir
+    @rtype: str
 
+    Todo- figure out a non stupid way to do this. There should be a
+    special OS folder designated as default folder.
+    """
     try:
         user = os.path.expanduser("~")
     except:
@@ -90,14 +102,28 @@ def getDownloadDir():
     return dl_dir
 
 
-def getFileExtension(filepath):
-    return os.path.splitext(filepath)[1]
+def getFileExtension(filepath, split=os.path.splitext):
+    """
+    @param filepath: filepath
+    @type filepath: str
+    @return: extension or None (or is it ''?)
+    @rtype: str | None
+    """
+    base, ext = split(filepath)
+    if base and not ext:
+        if base[0] == '.' and '\\' not in base and '/' not in base:
+            return base
+        else:
+            return ''
+    else:
+        return ext
 
 
 def getUniqueName(filename):
     """ Give a base filename plus extension -> get unique filename
 
-        @param filename- the base filename minus extension
+    @param filename- the base filename minus extension
+    @type filename: str
     """
 
     root, extension = os.path.splitext(filename)
@@ -155,7 +181,7 @@ class Singleton(metaclass=SingletonWrapper):
     pass
 
 
-def _get_lib_path_no_basename(filename, doc_folder):
+def _get_lib_path_no_basename(filename, target_folder):
     """Internal function to find a lib path given filename with extension.
     Search directory currently only targets Excel.Application.DefaultFilePath
     aka library.
@@ -163,22 +189,25 @@ def _get_lib_path_no_basename(filename, doc_folder):
     Iterate through directory, if matching filename found, return it.
 
     @param filename: a filename with extension but no basename
-    @param doc_folder: an active excel instance to use to query for
+    @param target_folder: an active excel instance to use to query for
                 DefaultFilePath, to avoid needing to open a new
                 one.
 
             To make function not require xl param, just use
             xl = newExcel(False, False) and close at the end.
+    @type filename: str
+    @type target_folder: str
 
     @return: first valid, existing filename found in directory.
+    @rtype: str
     """
 
-    for dirpath, _dirnames, filenames in os.walk(doc_folder):
+    for dirpath, _dirnames, filenames in os.walk(target_folder):
         if filename in filenames:
             return "\\".join((dirpath, filename))
 
     raise NameError('''Couldn't find file %s in user's default library
-    after scanning all files in %s.''' % (filename, doc_folder))
+    after scanning all files in %s.''' % (filename, target_folder))
 
 
 def _get_lib_path_no_extension(filepath, splitext=os.path.splitext):
@@ -191,7 +220,8 @@ def _get_lib_path_no_extension(filepath, splitext=os.path.splitext):
     @param filepath: a filename with extension but no basename
             To make function not require xl param, just use
             xl = newExcel(False, False) and close at the end.
-
+    @type filepath: str
+    @rtype: str
     """
     base, head = os.path.split(filepath)
 
@@ -205,11 +235,14 @@ def _get_lib_path_no_extension(filepath, splitext=os.path.splitext):
     raise NameError("No file extension given.\nUnable guess proper extension for file %s" % filepath)
 
 
-def _get_lib_path_no_ctxt(filename, doc_folder, listdir=os.listdir, splitext=os.path.splitext):
+def _get_lib_path_no_ctxt(filename, target_folder, listdir=os.listdir, splitext=os.path.splitext):
     """Internal function to find file when given neither basepath
     nor extension (no context)
 
     @param filename: a filename with extension but no basename
+    @type filename: str
+    @type target_folder: str
+    @rtype: str
 
     """
     def dir_scan(directory, filename=filename, listdir=listdir, splitext=splitext):
@@ -233,17 +266,19 @@ def _get_lib_path_no_ctxt(filename, doc_folder, listdir=os.listdir, splitext=os.
         raise StopIteration
 
     try:
-        return dir_scan(doc_folder)
+        return dir_scan(target_folder)
     except:
         raise NameError("Couldn't find file \'%s\' in any library folder.\nEnter a valid file path with extension" % filename)
 
 
-def _lib_path_search_dir_list_builder(folder_hint, *folder_hints):
+def _lib_path_search_dir_list_builder(folder_hint=None, *folder_hints):
     """Helper function to build the list of folders in which
     to search for getFullLibraryPath() function.
 
     @param folder_hint(s): folder(s) to include in search.
                             pass in a list of strings.
+    @type folder_hint: str
+    @type folder_hints: list[str]
 
     @return: list of folders to search
     """
@@ -284,7 +319,7 @@ def _lib_path_search_dir_list_builder(folder_hint, *folder_hints):
     return folders
 
 
-def getFullLibraryPath(path: str, hint: str=None, *, verbose: int=True) -> str:
+def getFullLibraryPath(path, hint=None, *, verbose=True):
     """ Function to get full library path. Figure out
     what's in the path iteratively, based on 3 common scenarios.
 

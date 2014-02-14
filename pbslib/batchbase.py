@@ -40,10 +40,10 @@ if BATCH_DEBUG:
         '''
         """
         
-        from officelib.nsdbg import OverloadWarningMeta, VerboseEmptyMethodMeta, \
+        from officelib.nsdbg import OverrideWarningMeta, VerboseEmptyMethodMeta, \
                         SlotsNoticeMeta  # , ExplicitVariableDeclarationMeta
         pseudo_meta_list = (
-                            OverloadWarningMeta,
+                            OverrideWarningMeta,
                             VerboseEmptyMethodMeta,
                             SlotsNoticeMeta,
 #                             ExplicitVariableDeclarationMeta
