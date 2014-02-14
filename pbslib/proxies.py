@@ -9,8 +9,9 @@ Proxies for objects like Times, PVs, Parameters, etc
 """
 from datetime import datetime
 
-from officelib.pbslib.batchbase import BatchBase, BatchError  # @UnresolvedImport
-from officelib.pbslib.batchutil import ExtractDataReport, GroupHeaderData  # @UnresolvedImport
+from officelib.pbslib.batchbase import BatchBase, BatchError
+from officelib.pbslib.batchutil import ExtractDataReport, GroupHeaderData, ParseDateFormat, \
+                                        default_strptime_fmt, TimedeltaDays
 from officelib.olutils import getFullLibraryPath
 from collections import Counter, OrderedDict
 from itertools import zip_longest, islice, takewhile
@@ -87,53 +88,87 @@ class ProxyListBase(list, BatchBase):
     mean = Mean
     average = mean
     Average = mean
-       
-        
+
+
+def ParseBadDates(raw, fmt=default_strptime_fmt):
+    """
+    @param raw: list of datestrings to parse
+    @type raw: collections.Iterable[str]
+    @param fmt: optional first format to try.
+    @type fmt: str
+    @return: datetime generator. Use generator to avoid building the list twice
+                (once here, once when calling super().__init__())
+    @rtype: __generator[str]
+    """
+
+    strptime = datetime.strptime
+    parse = ParseDateFormat
+
+    for date in raw:
+        try:
+            parsed = strptime(date, fmt)
+        except ValueError:
+            fmt = parse(date)
+            parsed = strptime(date, fmt)
+        yield parsed
+
+
 class Times(ProxyListBase):
     """ Proxy representation of the times of a parameter.
     Initialize from raw data. Allow times class to handle its own 
     processing. 
     
     Note on times-as-floats: all times are relative to 12/31/1899
-    This is the reference point for Excel, so it is what we use. 
+    This is the reference point for Excel, so it is what we use.
+
+    @type _raw: list[str]
+    @type _fmt: str
+    @type _floats: list[float]
+    @type _elapsed_times: list[float]
+    @type self: list[datetime]
     """
 
     def __init__(self, times):
+        """
+        @param times: list of raw datestrings
+        @type times: collections.Iterable[str]
+        @return: None
+        @rtype: None
+        """
+        # Similar to values.__init__, optimize this initialization
+        # by chaining generators. Stripped lazily strips the whitespace
+        # off of each line.
+        # Raw is generated from a takewhile generator. Because
+        # the takewhile aborts on predicate failure, and stripped
+        # iterated one line at a time by takewhile, finding an
+        # empty date string (which indicates end of column)
+        # stops the takewhile generator, which stops the stripped
+        # generator. Because str.strip() was consuming a significant
+        # amount of time according to cProfile, this significantly
+        # speeds up the initialization.
 
-        # similar to values.__init__, optimize this initialization
-        gen = (time.strip() for time in times)
-        raw = list(takewhile(_not_empty, gen))
-        fmt = self.parse_date_fmt(raw[0])
-        
+        # Predicate passed to takewhile is bool. Because strings,
+        # and not numbers, are passed to the bool function,
+        # bool('0') is true, and the only false return value
+        # is for an actual empty string.
+
+        stripped = (time.strip() for time in times)
+        raw = list(takewhile(bool, stripped))
+
+        fmt = ParseDateFormat(raw[0])
         strptime = datetime.strptime
+
         try:
             super().__init__(strptime(date, fmt) for date in raw)
         except ValueError:
             self.clear()
-            self._bad_init(raw, fmt)
+            fixed = ParseBadDates(raw, fmt)
+            super().__init__(fixed)
 
         self._raw = raw
         self._fmt = fmt
         self._floats = None 
         self._elapsed_times = None
-
-    def _bad_init(self, raw: list, fmt: str):
-
-        strptime = datetime.strptime
-        parse = self.parse_date_fmt
-
-        good = []
-
-        for date in raw:
-            try:
-                parsed = strptime(date, fmt)
-            except ValueError:
-                fmt = parse(date)
-                parsed = strptime(date, fmt)
-
-            good.append(parsed)
-
-        super().__init__(good)
 
     @property
     def Datestrings(self):
@@ -142,7 +177,6 @@ class Times(ProxyListBase):
     @property
     def Floats(self):
         """ Return list of values as floats.
-        
         Lazy evaluation.
         """
         if self._floats is None:
@@ -151,12 +185,9 @@ class Times(ProxyListBase):
                                   
     def as_floats(self, xl_zero=datetime.strptime('12/31/1899', '%m/%d/%Y')):
         """ Calculate datetimes into floats.
-        Requires first building list of datetimes. 
         """
-
-        td2float = self._td2float
         
-        return [td2float(dt - xl_zero) for dt in self]
+        return [TimedeltaDays(dt - xl_zero) for dt in self]
         
     @property
     def ElapsedTimes(self):
@@ -189,25 +220,57 @@ class Values(ProxyListBase):
     """
     
     def __init__(self, values):
+        """
+        @param values: list of values
+        @type values: collections.Iterable[str]
+        @return: None
+        @rtype: None
+        """
 
-        # Use a generator and takewhile to optimize this a bit
-        # since profiling showed this to be one of the slowest loops
-        # first generator strips values.
-        # takewhile aborts after first generator returns a string that is ''
-        # final generator converts value to float for the list.
+        # Similar to times.__init__, optimize this initialization
+        # by chaining generators. Stripped lazily strips the whitespace
+        # off of each line.
+        # Raw is generated from a takewhile generator. Because
+        # the takewhile aborts on predicate failure, and stripped
+        # iterated one line at a time by takewhile, finding an
+        # empty date string (which indicates end of column)
+        # stops the takewhile generator, which stops the stripped
+        # generator. Because str.strip() was consuming a significant
+        # amount of time according to cProfile, this significantly
+        # speeds up the initialization.
+
+        # Predicate passed to takewhile is bool. Because strings,
+        # and not numbers, are passed to the bool function,
+        # bool('0') is true, and the only false return value
+        # is for an actual empty string.
 
         gen = (v.strip() for v in values)
-        has_value = takewhile(_not_empty, gen)
+        has_value = takewhile(bool, gen)
         super().__init__(float(value) for value in has_value)
 
 
 class Parameter(BatchBase):
     """Proxy representation of a batch_file
     parameter.
-    
+
+    @type _header: str
+    @type _times: Times
+    @type _values: Values
+    @type _xlheaders: list[str]
+    @type _xldata: list
     """
                      
     def __init__(self, header, times, values):
+        """
+        @param header: name of parameter eg TempPV(C)
+        @type header: str
+        @param times: list of raw date strings
+        @type times: collections.Iterable[str]
+        @param values: list of values
+        @type values: collections.Iterable[str]
+        @return: None
+        @rtype: None
+        """
         
         self._header = header
         self._times = Times(times)
@@ -373,6 +436,7 @@ class BatchFile(OrderedDict, BatchBase):
         """
 
         @param key: key to get
+        @type key: str
         @param default: value to return if key not found
         @return: value stored for key
         """
@@ -389,25 +453,27 @@ class BatchFile(OrderedDict, BatchBase):
         except KeyError:
             pass
 
-        # No exact match, build a list of all partials
-        # We know param are all unique, so we can treat
-        # Them as case insensitive.
-
         return self.__getitems__(key)
 
     def __getitems__(self, key):
         """
         @param key: key to get items for
+        @type key: str
         @return: match or list of matches
 
         Batch file parameter names can be funky, so provide
         a way for users to almost get the parameter name right,
         but not quite. 
         """
+
+        # No exact match, build a list of all partials
+        # We know param are all unique, so we can treat
+        # Them as case insensitive.
+
         matches = []
-        key = key.lower()
+        lower_key = key.lower()
         for name, parameter in self.items():
-            if key in name.lower():
+            if lower_key in name.lower():
                 matches.append(parameter)
                 
         # If only one match, let user use directly.
@@ -443,7 +509,7 @@ class BatchFile(OrderedDict, BatchBase):
 
     @classmethod
     def fromMapping(cls, mapping: dict):
-        new = cls.__new__(cls, None)
+        new = cls.__new__(cls)
         OrderedDict.__init__(new)
         for key in mapping:
             new[key] = mapping[key]

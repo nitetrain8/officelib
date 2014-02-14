@@ -10,6 +10,12 @@ Misc utility functions as necessary
 
 from itertools import zip_longest, islice, chain
 from _strptime import _regex_cache, _TimeRE_cache
+from officelib.pbslib.batchbase import PBSLibError
+
+
+class DateStringError(PBSLibError, ValueError):
+    def __init__(self, string):
+        self.args = "Invalid date string encountered: %s" % string
 
 
 def grouper(iterable, n):
@@ -59,20 +65,25 @@ def ExtractDataReport(filename: str) -> tuple:
 def GroupHeaderData(headers, data):
     return zip(headers[::3], grouper(data, 3))    
 
-
-known_date_fmts = [
+# Ordered (somewhat) in order of likeliness of occurring.
+known_strptime_fmts = [
                 "%m/%d/%Y %I:%M:%S %p",
+                "%m/%d/%Y",
                 "%m/%d/%y %I:%M %p",
                 "%m/%d/%Y %H:%M",
-                "%m/%d/%Y"
                 ]
+
+default_strptime_fmt = known_strptime_fmts[0]  # This is the most common batch date format
 
 
 def __fast_parse_date(date_string: str, fmt: str, regex_cache=_regex_cache, TimeRE_cache=_TimeRE_cache) -> int:
     """
     @param date_string: date string to scan
-    @param fmt: format use for scan
+    @type date_string: str
+    @param fmt: strptime format use for scan
+    @type fmt: str
     @return: True/False
+    @rtype: bool
 
     Delve into the innards of _strptime.py to find the logic
     for determining whether a datestring is valid or not.
@@ -89,7 +100,7 @@ def __fast_parse_date(date_string: str, fmt: str, regex_cache=_regex_cache, Time
     return bool(format_regex.match(date_string))
 
 
-def ParseDateFormat(date: str, guess: str=None, known: list=known_date_fmts, parse=__fast_parse_date) -> str:
+def ParseDateFormat(date, guess=None, known=known_strptime_fmts, parse=__fast_parse_date):
     """ Parse date format, return the format the string is in.
     Test from a known list of date formats.
 
@@ -98,30 +109,40 @@ def ParseDateFormat(date: str, guess: str=None, known: list=known_date_fmts, par
     @param guess: optional date string to try first
     @type guess: str
     @param known: known list of possible formats to try
-    @type known: list[str]
+    @type known: collections.Iterable[str]
     @param parse: inline reference to the fast parse function
     """
-
-    if guess:
-        if parse(date, guess):
-            return guess
+    fmt = guess
+    if fmt:
+        if parse(date, fmt):
+            return fmt
 
     for fmt in known:
         if parse(date, fmt):
             return fmt
 
-    raise ValueError("Invalid date string format : '%s'" % date)
+    raise DateStringError("""Invalid date string format:
+    '%s' does not match format '%s'.""" % (date, fmt))
 
 
-def flatten(iterable_of_iterables):
+def flatten(iterables, chain_from_iterable=chain.from_iterable):
     """
-    @param iterable_of_iterables: iterable of iterables
-    @type iterable_of_iterables: collections.Iterable
+    @param iterables: iterable of iterables
+    @type iterables: collections.Iterable[collections.Iterable]
     @return: flattened iterable
     @rtype: itertools.chain
     """
-    return chain.from_iterable(iterable_of_iterables)
+    return chain_from_iterable(iterables)
 
-    
-    
-    
+
+def TimedeltaDays(td):
+    """Simple helper function to calculate timedeltas
+    @param td: timedelta to convert
+    @type td: datetime.timedelta
+    @return: timedelta represented as a float in units of days
+    @rtype: float
+    """
+    return td.days + td.seconds / 86400
+
+
+

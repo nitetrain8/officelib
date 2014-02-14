@@ -676,12 +676,19 @@ def PurgeSeriesCollection(chart):
 
 
 class HiddenXl():
+    """ Excel works much faster when the application is hidden,
+    because it doesn't have to draw updates to the screen.
+    This simple context manager hides the excel window
+    upon entering, and automatically shows it again upon
+    exiting, regardless of errors thrown during context.
+    """
     def __init__(self, xl):
         self.xl = xl
 
     def __enter__(self):
         self.xl.Visible = False
 
+    # noinspection PyUnusedLocal
     def __exit__(self, *_args):
         self.xl.Visible = True
         return False
