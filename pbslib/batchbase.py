@@ -8,6 +8,7 @@ Base classes/exceptions for batch handler
 to avoid cluttering main batchhandler.py file.
 """
 from officelib import OfficeLibError
+from weakref import ref as wref
 
 
 BATCH_DEBUG = False
@@ -41,10 +42,32 @@ class BatchBase(metaclass=PBSBatchType):
 
     Update 2/14/2014: ALl of everything
     moved to places where they make more sense.
+
+    @type _parent: _weakref.ReferenceType
     """
 
-    __slots__ = ()  # Allow subclasses to support slots
+    __slots__ = ("_parent",)  # Allow subclasses to support slots
 
+    @property
+    def Parent(self):
+        """
+        @return: weakrefable parent
+        @rtype: BatchBase
+        """
+        try:
+            return self._parent()
+        except:
+            return None
+
+    @Parent.setter
+    def Parent(self, parent):
+        """
+        @param parent: weakrefable parent
+        @type parent: BatchBase
+        @return: None
+        @rtype: None
+        """
+        self._parent = wref(parent)
         
         
         
