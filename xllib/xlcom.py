@@ -53,7 +53,7 @@ from officelib.const import xlLinear, xlByRows, xlDiagonalUp, xlContinuous, \
                                         xlInsideVertical, xlXYScatter, xlPrimary, xlSecondary, xlCategory, xlValue
 from officelib import OfficeLibError
 
-from xllib._wincom_type_hint import update_typehints
+from xllib.wincom_type_hint import update_typehints
 
 
 class xllibDefaultArg():
@@ -252,6 +252,7 @@ def xlBook2(filepath=None, new_xl=False, visible=True, verbose=True):
     @type verbose: bool
 
     @return: the newly opened xl workbook instance
+    @rtype: (xllib.typehint.typehint0x1x6._Worksheet._Worksheet, xllib.typehint.typehint0x1x6._Application._Application)
 
     Update 1/15/2014- Lots of refactoring to make it really clean and such.
     Or so I tried.

@@ -10,7 +10,7 @@ Proxies for objects like Times, PVs, Parameters, etc
 from datetime import datetime
 
 from officelib.pbslib.batchbase import BatchBase, BatchError
-from officelib.pbslib.batchutil import ExtractDataReport, GroupHeaderData, ParseDateFormat, \
+from officelib.pbslib.batchutil import extract_data_report, group_header_data, ParseDateFormat, \
                                         default_strptime_fmt, TimedeltaDays
 from officelib.olutils import getFullLibraryPath
 from collections import Counter, OrderedDict
@@ -495,9 +495,9 @@ class BatchFile(OrderedDict, BatchBase):
 
         # Dispatch handling of input and data
         filename = self._filename
-        headers, raw_data = ExtractDataReport(filename)
+        headers, raw_data = extract_data_report(filename)
         
-        for header, (times, pvs, _empty) in GroupHeaderData(headers, raw_data):
+        for header, (times, pvs, _empty) in group_header_data(headers, raw_data):
 
             try:
                 param = Parameter(header, times, pvs)

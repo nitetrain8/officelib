@@ -4,7 +4,10 @@ Created on Jan 13, 2014
 @Company: PBS Biotech
 @Author: Nathan Starkweather
 
-Misc utility functions as necessary
+Misc utility functions as necessary.
+These mostly support the proxies and data report
+modules, so shouldn't really need to be used often
+directly.
 
 """
 
@@ -45,7 +48,7 @@ def FilterIndexRange(data, cb=bool, islice=islice):
     return start, end    
 
 
-def ExtractDataReport(filename: str) -> tuple:
+def extract_data_report(filename: str) -> tuple:
     """
     @param filename: name of data report to open
     @type filename: str
@@ -62,7 +65,7 @@ def ExtractDataReport(filename: str) -> tuple:
     return headers, data
     
     
-def GroupHeaderData(headers, data):
+def group_header_data(headers, data):
     return zip(headers[::3], grouper(data, 3))    
 
 # Ordered (somewhat) in order of likeliness of occurring.

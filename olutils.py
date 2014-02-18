@@ -58,8 +58,8 @@ def getWinUserDocs():
 
     buf = ctypes.create_unicode_buffer(ctypes.wintypes.MAX_PATH)
 
-    bSuccess = ctypes.windll.shell32.SHGetFolderPathW(0, CSIDL_PERSONAL, 0, SHGFP_TYPE_CURRENT, buf)
-    if bSuccess != 0:  # SHGetFolderPathW returned error
+    hresult = ctypes.windll.shell32.SHGetFolderPathW(0, CSIDL_PERSONAL, 0, SHGFP_TYPE_CURRENT, buf)
+    if hresult != 0:  # SHGetFolderPathW returned error
         raise OSError("Failed to find user's Documents folder")
 
     return buf.value
@@ -88,6 +88,14 @@ def getDownloadDir():
 
     Todo- figure out a non stupid way to do this. There should be a
     special OS folder designated as default folder.
+
+    Update:
+    http://msdn.microsoft.com/en-us/library/windows/desktop/bb762188(v=vs.85).aspx
+
+    Use SHGetKnownFolderPath with the correct GUID
+    issue- GUID is written as a string, but needs to be sent to
+    function as a struct(?)
+    need to make custom c structure.
     """
     try:
         user = os.path.expanduser("~")

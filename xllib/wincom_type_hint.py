@@ -26,7 +26,7 @@ from shutil import copytree, copy2 as _copy2
 
 gen_py_basepath = "C:\\Python33\\Lib\\site-packages\\win32com\\gen_py"
 
-typehint_dir = dirname(__file__) + '\\_typehint'
+typehint_dir = dirname(__file__) + '\\typehint'
 
 dir_whitelist = (
                  '\\'.join((gen_py_basepath, "00020813-0000-0000-C000-000000000046x0x1x6")),
@@ -114,7 +114,17 @@ def update_files(old):
             rm(dst)
         except FileNotFoundError:
             pass
-        copy2(src, dst)
+        try:
+            copy2(src, dst)
+        except:
+            # If error copying, due most likely to top-level file in gen-py folder
+            # Pop off the name of the last dir (typehint), stick it in the main typehint
+            # folder.
+            tail, head = path_split(dst)
+            tail2, head2 = path_split(tail)
+            dst = '\\'.join((tail2, head))
+            copy2(src, dst)
+
 
 
 def update_typehints():
@@ -160,7 +170,7 @@ def wincom_to_typehint(fpath, base=gen_py_basepath):
 
     pyname_re = re_compile(r"[^_a-zA-Z0-9]")
     new_name = pyname_re.sub("_", name[-5:])
-    return new_name
+    return "typehint" + new_name
 
 
 def load_hint_timestamps(time_file=time_file):
@@ -210,7 +220,7 @@ def init_hint_folder():
 
     Build the hint folder for the first time. Do not use.
     """
-
+    from os import rmdir
     hint_dir = typehint_dir
 
     try:
@@ -221,11 +231,16 @@ def init_hint_folder():
     for fldr in dir_whitelist:
         new_name = wincom_to_typehint(fldr)
         new = '\\'.join((typehint_dir, new_name))
+        try:
+            rmdir(new)
+        except:
+            pass
         copytree(fldr, new)
 
     init_hint_timestamps()
 
 
 if __name__ == '__main__':
+    # init_hint_folder()
     update_typehints()
 

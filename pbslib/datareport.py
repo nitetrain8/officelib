@@ -10,7 +10,7 @@ from collections import OrderedDict
 
 from officelib.olutils import getFullLibraryPath
 from officelib.pbslib.batchbase import BatchBase, BatchError
-from officelib.pbslib.batchutil import ExtractDataReport, GroupHeaderData
+from officelib.pbslib.batchutil import extract_data_report, group_header_data
 from officelib.pbslib.proxies import Parameter
 
 
@@ -27,16 +27,18 @@ class DataReport(BatchBase):
 
     Parameters are instances of class Parameter.
 
-    constructors:
+    Constructors:
+
     DataReport() -> empty data report
-    DataReport(filename=filename) -> Data report extracting data from the filename
-    DataReport.fromMapping(mapping) -> mapping of parameter names, parameter instances
+    DataReport(filename) -> Data report extracting data from the filename
+    DataReport.fromMapping(mapping) -> Data report from mapping of parameter names, parameter instances
+    DataReport.fromIterable(iterable) -> Data report from list of parameter instances
 
     """
 
     def __init__(self, filename=None):
         super().__init__()
-        self.__mapping = OrderedDict
+        self.__mapping = OrderedDict()
         if filename:
             self.ProcessFile(filename)
         else:
@@ -47,6 +49,12 @@ class DataReport(BatchBase):
 
     def __getitem__(self, key):
         return self.__mapping[key]
+
+    def __contains__(self, key):
+        return key in self.__mapping
+
+    def __iter__(self):
+        return iter(self.__mapping)
 
     def __setitem__(self, key, value):
         self.__mapping[key] = value
@@ -77,31 +85,51 @@ class DataReport(BatchBase):
         @rtype: None
         """
 
-        headers, raw_data = ExtractDataReport(filename)
+        headers, raw_data = extract_data_report(filename)
 
-        for header, (times, pvs, _empty) in GroupHeaderData(headers, raw_data):
+        for header, (times, pvs, _empty) in group_header_data(headers, raw_data):
 
             try:
-                param = Parameter(header, times, pvs)
-                param.Parent = self
+                parameter = Parameter(header, times, pvs)
+                parameter.Parent = self
             except Exception as e:
                 # Catch errors during creation to reraise with filename of problem.
                 raise DataReportError("Error occurred trying to make %s in batch file " % header + self.Filename) from e
 
-            self[header] = param
+            self[header] = parameter
 
     @classmethod
-    def fromMapping(cls, mapping):
+    def fromMapping(cls, mapping, filename=None):
         """
         @param mapping: mapping of parameter names to parameter instances
         @type mapping: collections.Mapping[str, Parameter]
+        @param filename: optional filename.
+        @type filename: str
         @return: DataReport
         @rtype: DataReport[str, Parameter]
         """
         self = cls()
         for key in mapping:
             self[key] = mapping[key]
-        self._filename = None
+        self._filename = filename
+        return self
+
+    @classmethod
+    def fromIterable(cls, iterable, filename=None):
+        """
+        @param iterable: iterable of parameter instances
+        @type iterable: collections.Iterable[Parameter]
+        @param filename: optional filename.
+        @type filename: str
+        @return: DataReport
+        @rtype: DataReport
+        """
+
+        self = cls()
+        for parameter in iterable:
+            self[parameter.Header] = parameter
+
+        self._filename = filename
         return self
 
     @property

@@ -12,7 +12,7 @@ from datetime import datetime
 
 from officelib.pbslib.batchbase import BatchBase, BatchError
 # noinspection PyUnresolvedReferences
-from officelib.pbslib.batchutil import ExtractDataReport, GroupHeaderData, ParseDateFormat, \
+from officelib.pbslib.batchutil import extract_data_report, group_header_data, ParseDateFormat, \
                                         default_strptime_fmt, TimedeltaDays
 # noinspection PyUnresolvedReferences
 from officelib.olutils import getFullLibraryPath

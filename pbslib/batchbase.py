@@ -46,8 +46,6 @@ class BatchBase(metaclass=PBSBatchType):
     @type _parent: _weakref.ReferenceType
     """
 
-    __slots__ = ("_parent",)  # Allow subclasses to support slots
-
     @property
     def Parent(self):
         """

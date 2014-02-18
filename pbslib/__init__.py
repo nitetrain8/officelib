@@ -11,3 +11,15 @@ PBS Biotech Bioreactors' Data Export functionality.
 
 """
 
+from .datareport import DataReport
+
+
+def open_data_report(fname):
+    """
+    @param fname: file name of data report to open
+    @type fname: str
+    @return: DataReport
+    @rtype: DataReport
+    """
+
+    return DataReport(fname)
