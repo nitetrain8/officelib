@@ -53,6 +53,8 @@ from officelib.const import xlLinear, xlByRows, xlDiagonalUp, xlContinuous, \
                                         xlInsideVertical, xlXYScatter, xlPrimary, xlSecondary, xlCategory, xlValue
 from officelib import OfficeLibError
 
+from xllib._wincom_type_hint import update_typehints
+
 
 class xllibDefaultArg():
     """Create a new class so that 'None' can be
@@ -694,24 +696,16 @@ class HiddenXl():
         return False
 
 
-def __make_win32com_typehints():
-    from shutil import copytree
-    d = "C:\\Python33\\Lib\\site-packages\\win32com\\gen_py\\"
-    f1 = "C:\\Python33\\Lib\\site-packages\\win32com\\gen_py\\00020813-0000-0000-C000-000000000046x0x1x6"
-    f2 = "C:\\Python33\\Lib\\site-packages\\win32com\\gen_py\\00020905-0000-0000-C000-000000000046x0x8x4"
-    copytree(f1, d + "typehint0x1x6")
-    copytree(f2, d + "typehint0x8x4")
-
 if __name__ == '__main__':
     
     # insert unit tests here (?)
-    xl = EnsureDispatch("Excel.Application")
-    xl.Visible = True
-    wb = xl.Workbooks(1)
-    chart = wb.Charts("Off to Auto")
-
-    FormatAxesScale(chart, *[1 for i in range(6)])
-
+    # xl = EnsureDispatch("Excel.Application")
+    # xl.Visible = True
+    # wb = xl.Workbooks(1)
+    # chart = wb.Charts("Off to Auto")
+    #
+    # FormatAxesScale(chart, *[1 for i in range(6)])
+    update_typehints()
 
 
 
