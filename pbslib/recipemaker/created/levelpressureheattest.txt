@@ -1,0 +1,8 @@
+
+
+Set "TempSP(C)" to 40
+Wait 5 seconds
+Set "TempModeUser" to On
+Wait until "TempPV(C)" >= 40
+Wait 3600 seconds
+Set "TempSP(C)" to Off
