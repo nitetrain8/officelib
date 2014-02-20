@@ -9,7 +9,7 @@ making excel easier. Probably won't
 be used much.
 """
 
-from xllib.xladdress import cellRangeStr
+from officelib.xllib.xladdress import cellRangeStr
 
 
 class ChartSeries():

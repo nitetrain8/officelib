@@ -53,7 +53,7 @@ from officelib.const import xlLinear, xlByRows, xlDiagonalUp, xlContinuous, \
                                         xlInsideVertical, xlXYScatter, xlPrimary, xlSecondary, xlCategory, xlValue
 from officelib import OfficeLibError
 
-from xllib.wincom_type_hint import update_typehints
+from officelib.xllib.wincom_type_hint import update_typehints
 
 
 class xllibDefaultArg():
