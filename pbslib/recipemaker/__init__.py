@@ -8,8 +8,9 @@ Created in: PyCharm Community Edition
 """
 __author__ = 'Nathan Starkweather'
 
-from officelib.pbslib.recipemaker.recipemaker import Recipe, LongRecipe, RecipeVariable
-from officelib.pbslib.recipemaker.makevars import vars_py_current, make_vars_py, VARS_CSV, VARS_PYFILE
+from officelib.pbslib.recipemaker.recipemaker import Recipe, LongRecipe, RecipeVariable, save_recipe
+from officelib.pbslib.recipemaker.makevars import vars_py_current as _vars_py_current, \
+                                            make_vars_py as _make_vars_py, VARS_CSV, VARS_PYFILE
 
 
 # Use this to dynamically load variables at runtime from an unknown python module.
@@ -17,8 +18,8 @@ def import_py_vars(pyfile):
     """
     @param pyfile: pyfile to import
     @type pyfile: str
-    @return: ModuleType
-    @rtype: module
+    @return: dict
+    @rtype: dict[str, RecipeVariable]
     """
     from os.path import split as path_split, splitext as path_splitext
     from sys import path as sys_path
@@ -31,8 +32,8 @@ def import_py_vars(pyfile):
     return {k : v for k, v in var_module.__dict__.items() if not k.startswith("_")}
 
 # Rebuild vars pyfile if not up to date.
-if not vars_py_current(VARS_CSV, VARS_PYFILE):
-    make_vars_py(VARS_CSV, VARS_PYFILE)
+if not _vars_py_current(VARS_CSV, VARS_PYFILE):
+    _make_vars_py(VARS_CSV, VARS_PYFILE)
 
 
 # Import vars and update global namespace

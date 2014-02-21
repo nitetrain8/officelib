@@ -83,47 +83,53 @@ def make_long_recipe(settings):
     """
     @param settings: iterable of tuples of (p, i, d) settings.
     @type settings: collections.Iterable[(int | float, int | float, int | float)]
-    @return:
+    @return: Recipe
+    @rtype: LongRecipe
+
     """
     recipes = [make_full_test_body(p, i, d, 37) for p, i, d in settings]
 
     long = LongRecipe()
     long.add_recipe(__long_recipe_start)
     long.extend_recipes(recipes)
-    long_recipe = str(long)
 
-    return long_recipe
+    return long
 
+
+def test_ratio_no_d() -> list:
+    """
+    @return: list of settings with constant ratio.
+    """
+    ps = [p for p in range(40, 50, 5)]
+    settings = [(p, p / 10, 0) for p in ps]
+    return settings
+
+
+def test_d_settings():
+    """
+    @return: List of settings for this test
+    """
+    ds = (0.1, 0.05, 0.01, 0.005, 0.001, 0.0005)
+    settings = [(32.5, 3.25, d) for d in ds]
+    settings.append((50, 5, 0))
+    settings.append((60, 6, 0))
+    return settings
 
 if __name__ == '__main__':
 
     # functions to generate specific recipes
-    def test_ratio_no_d() -> list:
-        """
-        @return: list of settings with constant ratio.
-        """
-        ps = [p for p in range(40, 65, 5)]
-        settings = [(p, p / 10, 0) for p in ps]
-        return settings
 
-    def test_d_settings():
-        """
-        @return: List of settings for this test
-        """
-        ds = (0.1, 0.05, 0.01, 0.005, 0.001, 0.0005)
-        settings = [(32.5, 3.25, d) for d in ds]
-        settings.append((50, 5, 0))
-        settings.append((60, 6, 0))
-        return settings
+
 
     # settings = test_d_settings()
     # recipe = make_long_recipe(settings)
     settings = test_ratio_no_d()
     recipe = make_long_recipe(settings)
     outfile = "C:\\Users\\Public\\Documents\\PBSSS\\Functional Testing\\tpid.txt"
-    from officelib.nsdbg import npp_open
-    print(recipe, file=open(outfile, 'w'))
-    npp_open(outfile)
+    with open(outfile, 'w') as f:
+        recipe.print_steps(f)
+    from os import startfile
+    startfile(outfile)
 
 
     # print(recipe)

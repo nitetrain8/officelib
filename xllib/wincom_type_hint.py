@@ -17,11 +17,11 @@ of the gen_py cache, except with valid (and simplified) python
 identifiers.
 """
 
-from os import listdir, mkdir, remove as os_remove
+from os import listdir, mkdir, remove as _rm
 from os.path import isdir, join as path_join, getmtime, dirname, split as path_split
-from re import compile as re_compile
+from re import sub as _re_sub
 from io import StringIO
-from shutil import copytree, copy2 as _copy2
+from shutil import copytree as _copytree, copy2 as _copy2, rmtree as _rmtree
 
 
 gen_py_basepath = "C:\\Python33\\Lib\\site-packages\\win32com\\gen_py"
@@ -33,32 +33,46 @@ dir_whitelist = (
                  '\\'.join((gen_py_basepath, "00020905-0000-0000-C000-000000000046x0x8x4"))
                 )
 
+dir_ignore = ("__pycache__",)
+
 time_file = typehint_dir + '\\lastupdate.txt'
 
+special_py = "C:\\Users\\PBS Biotech\\Documents\\Personal\\PBS_Office\\MSOffice\\officelib\\typehint.py"
 
-def gen_py_flatten(filepath, isdir=isdir, path_join=path_join, getmtime=getmtime):
+
+def make_special_py(pyfile=special_py):
+    pyfile += 's'
+    return pyfile
+    pass
+
+
+def gen_py_flatten(filepath=gen_py_basepath, isdir=isdir, path_join=path_join, getmtime=getmtime):
     """
+    Recursively return list of all files in dir, flattened.
+    Internal helper. End result is an internal-only function
+    that builts a full list of all files in a directory
+    and each subdirectory similar to os.walk().
+
+    Iterates depth-first.
+
     @param filepath: filepath to flatten
     @type filepath: str
     @return: filenames
     @rtype: __generator[(str, float)]
 
-    Recursively return list of all files in dir, flattened.
-    Internal helper.
-
-    Iterates depth-first.
     """
     names = listdir(filepath)
     for name in names:
         path = path_join(filepath, name)
         if isdir(path):
-            if path in dir_whitelist:
+            # if path in dir_whitelist:
+            if not any(s in name for s in dir_ignore):
                 yield from gen_py_flatten(path)
         else:
             yield path, getmtime(path)
 
 
-def type_hint_flatten(filepath, isdir=isdir, path_join=path_join, getmtime=getmtime):
+def type_hint_flatten(filepath=typehint_dir, isdir=isdir, path_join=path_join, getmtime=getmtime):
     """
     @param filepath: filepath to flatten
     @type filepath: str
@@ -70,7 +84,7 @@ def type_hint_flatten(filepath, isdir=isdir, path_join=path_join, getmtime=getmt
 
     Iterates depth-first.
 
-    Because I lack foresight, this is identical to the above function,
+    Because I lack foresight, this is identical to gen_py_flatten,
     but only operates on type hint folder,
     and exists because I need to flatten the type hint folder
     without checking if path is in the dir_whitelist.
@@ -79,13 +93,25 @@ def type_hint_flatten(filepath, isdir=isdir, path_join=path_join, getmtime=getmt
     for name in names:
         path = path_join(filepath, name)
         if isdir(path):
-            yield from gen_py_flatten(path)
+            yield from type_hint_flatten(path)
         else:
             yield path, getmtime(path)
 
 
 def find_old_files(wincom, reference):
     """
+    Build a list of all of the outdated files in the directory.
+    Rather than calling os.path.getmtime for each file in typehint folder,
+    it is easier and faster just to cache all the results in a .csv to parse
+    and rebuild each update.
+
+    Feed in dict of wincom paths to os.stat.s_mtime, and a dict
+    of the same for reference. Reference paths should be in format
+    where '\\'.join((wincom_to_typehint(base), head)) produces
+    the correct reference path to the base and head names produced
+    by os.path.split() on the corresponding wincom name.
+
+
     @param wincom: the dict of wincom files and timestamps
     @type wincom: dict[str, float]
     @param reference: the dict of typehint files and timestamps
@@ -107,24 +133,16 @@ def find_old_files(wincom, reference):
 
 
 def update_files(old):
-    rm = os_remove
+    rm = _rm
     copy2 = _copy2
     for src, dst in old:
+
         try:
             rm(dst)
         except FileNotFoundError:
             pass
-        try:
-            copy2(src, dst)
-        except:
-            # If error copying, due most likely to top-level file in gen-py folder
-            # Pop off the name of the last dir (typehint), stick it in the main typehint
-            # folder.
-            tail, head = path_split(dst)
-            tail2, head2 = path_split(tail)
-            dst = '\\'.join((tail2, head))
-            copy2(src, dst)
 
+        copy2(src, dst)
 
 
 def update_typehints():
@@ -137,23 +155,32 @@ def update_typehints():
     startup by xllib.
     """
 
+    # If typehint folder doesn't exist, just make it and return.
+    # No point doing anything else.
+
+    try:
+        reference = load_hint_timestamps()
+    except:
+        init_hint_folder()
+        return
+
     wincom = dict(gen_py_flatten(gen_py_basepath))
-    reference = load_hint_timestamps()
+
     old = find_old_files(wincom, reference)
 
     if old:
         update_files(old)
 
-    def py_path(fpath):
-        base, head = path_split(fpath)
-        ref_name = '\\'.join((wincom_to_typehint(base), head))
-        return ref_name
+        def py_path(fpath):
+            base, head = path_split(fpath)
+            ref_name = '\\'.join((wincom_to_typehint(base), head))
+            return ref_name
 
-    file_output = ((py_path(fpath), time) for fpath, time in wincom.items())
-    write_hint_timestamps(file_output)
+        file_output = ((py_path(fpath), time) for fpath, time in wincom.items())
+        write_hint_timestamps(file_output)
 
 
-def wincom_to_typehint(fpath, base=gen_py_basepath):
+def wincom_to_typehint(fpath, base=gen_py_basepath, pyname_re=r"[^_a-zA-Z0-9]"):
     """
     @param fpath: filepath to pythonify. Directories only!
     @type fpath: str
@@ -166,11 +193,22 @@ def wincom_to_typehint(fpath, base=gen_py_basepath):
     and replaces any invalid python identifiers with underscores.
 
     """
+
+    # Todo- more robust way of ensuring that only a partially
+    # qualified directory tree is left after lstrip.
+
+    if len(fpath) < len(base):
+        raise NameError("Invalid path or base path:\npath: %s\nbase:%s" % (fpath, base))
+
     name = fpath.lstrip(base)
 
-    pyname_re = re_compile(r"[^_a-zA-Z0-9]")
-    new_name = pyname_re.sub("_", name[-5:])
-    return "typehint" + new_name
+    if not name:  # file existed top-level
+        return ''
+
+    base = name.replace('/', '\\').split('\\')
+    new_name = "\\".join(_re_sub(pyname_re, "_", x[-5:]) for x in base)
+
+    return "th" + new_name
 
 
 def load_hint_timestamps(time_file=time_file):
@@ -218,24 +256,32 @@ def init_hint_folder():
     @return: None
     @rtype: None
 
-    Build the hint folder for the first time. Do not use.
+    Build the hint folder for the first time. Do not use if not careful.
+    Obliterates any previously existing type hint folders.
     """
-    from os import rmdir
+
+    copy2 = _copy2
+    rmtree = _rmtree
+    copytree = _copytree
     hint_dir = typehint_dir
 
     try:
-        mkdir(hint_dir)
-    except FileExistsError:
+        rmtree(hint_dir)
+    except FileNotFoundError:
         pass
 
-    for fldr in dir_whitelist:
-        new_name = wincom_to_typehint(fldr)
-        new = '\\'.join((typehint_dir, new_name))
-        try:
-            rmdir(new)
-        except:
-            pass
-        copytree(fldr, new)
+    mkdir(hint_dir)
+
+    for name in listdir(gen_py_basepath):
+        path = '\\'.join((gen_py_basepath, name))
+        if isdir(path):
+            if not any(s in name for s in dir_ignore):
+                new_name = wincom_to_typehint(path)
+                target = '\\'.join((typehint_dir, new_name))
+                copytree(path, target)
+        else:
+            target = '\\'.join((typehint_dir, name))
+            copy2(path, target)
 
     init_hint_timestamps()
 
@@ -243,4 +289,5 @@ def init_hint_folder():
 if __name__ == '__main__':
     # init_hint_folder()
     update_typehints()
+
 

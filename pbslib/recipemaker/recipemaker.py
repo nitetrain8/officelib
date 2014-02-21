@@ -1,10 +1,61 @@
-""" Simple recipe maker module.
 """
+Simple recipe maker module.
+"""
+
+
+from os.path import dirname as _dirname, exists as _exists, splitext as _splitext
+#noinspection PyTypeChecker
+__DEFAULT_SAVE_DIR__ = _dirname(__file__).replace("/", "\\") + "\\created"
+
+
+def make_unique_name(fpath):
+    """
+    Make a unique name for the filepath by stripping extension,
+    and adding 1, 2... to the end until a unique name is generated.
+
+    @param fpath: filepath to make unique name for
+    @type fpath: str
+    @return: str
+    @rtype: str
+    """
+    if not _exists(fpath):
+        return fpath
+
+    base, ext = _splitext(fpath)
+    i = 1
+    candidate = str(i).join((base, ext))
+    while _exists(candidate):
+        i += 1
+        candidate = str(i).join((base, ext))
+
+    return candidate
+
+
+def save_recipe(recipe, fpath=None):
+    """
+    @param recipe: recipe to save
+    @type recipe: Recipe
+    @param fpath: filepath to save recipe as
+    @type fpath: str
+    @return: filepath to saved recipe
+    @rtype: str
+    """
+
+    if fpath is None:
+        name = getattr(recipe, 'Name', '')
+        if not name:
+            name = "PBSRecipe"
+        fpath = '\\'.join((__DEFAULT_SAVE_DIR__, make_unique_name(name)))
+    else:
+        fpath = make_unique_name(fpath)
+
+    with open(fpath, 'w') as f:
+        recipe.print_steps(f)
+    return fpath
 
 
 class Recipe():
     """ Recipe maker.
-
     @ivar buffer: line-buffer containing list of steps.
     @type buffer: list[str]
     @ivar Name: recipe name(optional)
@@ -22,20 +73,23 @@ class Recipe():
         """
         self.buffer.append(code)
 
-    def set(self, param, value):
+    def set(self, var, value):
         """
-        @param param: variable to set
-        @type param: str | RecipeVariable
-        @param value: value to set it to
+        Set variabie var to value.
+
+        @var var: variable to set
+        @type var: str | RecipeVariable
+        @var value: value to set it to
         @type value: str | int | float
         """
-        self.write("Set \"%s\" to %s" % (param, str(value)))
+        self.write("Set \"%s\" to %s" % (var, str(value)))
 
     def clear(self):
         """
+        Clear the recipe.
+
         @return: None
         @rtype: None
-        Clear the recipe.
         """
         self.buffer.clear()
         self.buffer.append('')
@@ -43,21 +97,34 @@ class Recipe():
     # alias
     Set = set
 
-    def waituntil(self, param, op, val):
+    def wait_until(self, var, op, value):
         """
-        @param param: parameter to wait for
-        @type param: str
-        @param op: wait operation
-        @type op: str
-        @param val: value to wait for
-        @type val: str | int | float
-        """
-        self.write("Wait until \"%s\" %s %s" % (param, op, str(val)))
+        Tell recipe to wait until var has op
+        relation to value.
 
-    wait_until = waituntil
+        ops:
+        "<"
+        "<="
+        ">"
+        ">="
+        "!="
+        "=="
+
+        @var var: parameter to wait for
+        @type var: str
+        @var op: wait operation
+        @type op: str
+        @var value: value to wait for
+        @type value: str | int | float
+        """
+        self.write("Wait until \"%s\" %s %s" % (var, op, str(value)))
+
+    waituntil = wait_until
 
     def wait(self, sec):
         """
+        Tell recipe to wait sec seconds.
+
         @param sec: seconds to wait
         @type sec: int
         """
@@ -75,8 +142,14 @@ class Recipe():
 
     import sys
 
-    def print(self, stream=sys.stdout):
-        print(str(self), file=stream)
+    def print_steps(self, stream=sys.stdout):
+        """
+        @param stream: stream to print to
+        @type stream: io.TextIOWrapper
+        @return: None
+        @rtype: None
+        """
+        return print(str(self), file=stream)
 
 
 class LongRecipe(Recipe):
@@ -90,7 +163,7 @@ class LongRecipe(Recipe):
         @return: None
         @rtype: None
         """
-        self.buffer.extend(recipe.buffer)
+        self.buffer.extend(step for step in recipe.buffer if step)
 
     def extend_recipes(self, recipe_list):
         """
@@ -100,7 +173,7 @@ class LongRecipe(Recipe):
         @rtype: None
         """
         for recipe in recipe_list:
-            self.buffer.extend(recipe.buffer)
+            self.add_recipe(recipe)
 
 
 class RecipeVariable():
