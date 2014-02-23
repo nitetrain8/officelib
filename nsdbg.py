@@ -843,7 +843,7 @@ def traceModuleCalls(module, *, checked=None):
 
         #wrap functions
         if isinstance(v, FunctionType) and \
-            v.__module__ not in traceModuleCallsExclude:
+                v.__module__ not in traceModuleCallsExclude:
             try:
                 module.__dict__[k] = traceFuncCalls(v)
             except FunctionCallTraceError:
@@ -851,7 +851,7 @@ def traceModuleCalls(module, *, checked=None):
 
         #wrap classes 
         elif isinstance(v, type) and \
-            v.__module__ not in traceModuleCallsExclude:
+                v.__module__ not in traceModuleCallsExclude:
 
             try:
                 module.__dict__[k] = traceClassCalls(v)
@@ -957,8 +957,7 @@ def traceFuncCalls(func, annotation=None):
                                         _tss,
                                         "Call to ",
                                         annotation
-                                        ))
-                           )
+                                        )))
 
             trace_scope += 1
 
@@ -1018,8 +1017,7 @@ def traceFuncCalls(func, annotation=None):
                                     '   parameters: (',  # inline fcall starting here
                                     ', '.join("%s=%s" % (param, val) for param, val in passed.items()),
                                     ')'
-                                    ))
-                           )
+                                    )))
 
             trace_scope += 1
             # outer try/finally necessary to ensure scope trace is updated
@@ -1035,8 +1033,7 @@ def traceFuncCalls(func, annotation=None):
                                          _tss,
                                          "Return from ",
                                          annotation
-                                         ))
-                               )
+                                         )))
 
                 # this try block is necessary to prevent accidental errors from
                 # being raised when working with library modules that use internal function
@@ -1177,3 +1174,4 @@ def dbgPrintEmptyClsDecorator(cls, *, __empty=__empty_code):
                 setattr(cls, attr, VerboseEmptyMethod(val))
         except AttributeError:
             pass
+
