@@ -4,10 +4,13 @@ Created on Dec 2, 2013
 @author: PBS Biotech
 """
 
-import os.path
+from os import name as os_name, walk as os_walk, listdir
 import ctypes.wintypes
 
 #wintypes const values
+from os.path import normpath, exists as path_exists, expanduser as path_expanduser, \
+    splitext as path_splitext, split as path_split, splitdrive as path_splitdrive
+
 CSIDL_PERSONAL = 5  # My Docs
 CSIDL_COMMON_DOCUMENTS = 46
 SHGFP_TYPE_CURRENT = 0  # Current value, not default value
@@ -20,7 +23,7 @@ def getWorkDir():
     """
 
     # OS-specific attempt for Windows
-    if os.name == 'nt':
+    if os_name == 'nt':
 
         try:
             return getWinUserDocs()
@@ -32,7 +35,7 @@ def getWorkDir():
         except OSError:
             pass
 
-    user = os.path.expanduser("~")
+    user = path_expanduser("~")
 
     docs = 'Documents'
     mydocs = 'My Documents'
@@ -40,8 +43,8 @@ def getWorkDir():
 
     for folder in folders:
         workdir = ''.join((user, folder))
-        if os.path.exists(workdir):
-            return workdir
+        if path_exists(workdir):
+            return workdir.replace('/', '\\')
 
     return None
 
@@ -62,7 +65,7 @@ def getWinUserDocs():
     if hresult != 0:  # SHGetFolderPathW returned error
         raise OSError("Failed to find user's Documents folder")
 
-    return buf.value
+    return normpath(buf.value)
 
 
 def getWinCommonDocs():
@@ -74,11 +77,11 @@ def getWinCommonDocs():
     """
 
     buf = ctypes.create_unicode_buffer(ctypes.wintypes.MAX_PATH)
-    query = ctypes.windll.shell32.SHGetFolderPathW(0, CSIDL_COMMON_DOCUMENTS, 0, SHGFP_TYPE_CURRENT, buf)
-    if query != 0:
+    hresult = ctypes.windll.shell32.SHGetFolderPathW(0, CSIDL_COMMON_DOCUMENTS, 0, SHGFP_TYPE_CURRENT, buf)
+    if hresult != 0:
         raise OSError("Failed to find common Documents folder")
 
-    return buf.value
+    return normpath(buf.value)
 
 
 def getDownloadDir():
@@ -98,26 +101,26 @@ def getDownloadDir():
     need to make custom c structure.
     """
     try:
-        user = os.path.expanduser("~")
+        user = path_expanduser("~")
     except:
         # Todo- figure out how to find dl folder on mac?
         raise
 
     dl_dir = '\\'.join([user, "Downloads"])
-    if not os.path.exists(dl_dir):
+    if not path_exists(dl_dir):
         raise FileNotFoundError("Couldn't find downloads folder")
 
-    return dl_dir
+    return dl_dir.replace('/', '\\')
 
 
-def getFileExtension(filepath, split=os.path.splitext):
+def getFileExtension(filepath, splitext=path_splitext):
     """
     @param filepath: filepath
     @type filepath: str
     @return: extension or None (or is it ''?)
     @rtype: str | None
     """
-    base, ext = split(filepath)
+    base, ext = splitext(filepath)
     if base and not ext:
         if base[0] == '.' and '\\' not in base and '/' not in base:
             return base
@@ -134,9 +137,9 @@ def getUniqueName(filename):
     @type filename: str
     """
 
-    root, extension = os.path.splitext(filename)
+    root, extension = path_splitext(filename)
 
-    exists = os.path.exists
+    exists = path_exists
 
     unique_name = filename
     exists_counter = 0
@@ -210,7 +213,7 @@ def _get_lib_path_no_basename(filename, target_folder):
     @rtype: str
     """
 
-    for dirpath, _dirnames, filenames in os.walk(target_folder):
+    for dirpath, _dirnames, filenames in os_walk(target_folder):
         if filename in filenames:
             return "\\".join((dirpath, filename))
 
@@ -218,7 +221,7 @@ def _get_lib_path_no_basename(filename, target_folder):
     after scanning all files in %s.''' % (filename, target_folder))
 
 
-def _get_lib_path_no_extension(filepath, splitext=os.path.splitext):
+def _get_lib_path_no_extension(filepath, splitext=path_splitext):
     """Internal function to find file when given basepath but
     no file extension.
 
@@ -231,9 +234,9 @@ def _get_lib_path_no_extension(filepath, splitext=os.path.splitext):
     @type filepath: str
     @rtype: str
     """
-    base, head = os.path.split(filepath)
+    base, head = path_split(filepath)
 
-    for entry in os.listdir(base):
+    for entry in listdir(base):
 
         filename, ext = splitext(entry)
 
@@ -243,7 +246,7 @@ def _get_lib_path_no_extension(filepath, splitext=os.path.splitext):
     raise NameError("No file extension given.\nUnable guess proper extension for file %s" % filepath)
 
 
-def _get_lib_path_no_ctxt(filename, target_folder, listdir=os.listdir, splitext=os.path.splitext):
+def _get_lib_path_no_ctxt(filename, target_folder, listdir=listdir, splitext=path_splitext):
     """Internal function to find file when given neither basepath
     nor extension (no context)
 
@@ -263,7 +266,7 @@ def _get_lib_path_no_ctxt(filename, target_folder, listdir=os.listdir, splitext=
             if ext and (name == filename):
                 return '\\'.join((directory, entry))
 
-            # catch errors from os.listdir (NotADirectoryError)
+            # catch errors from listdir (NotADirectoryError)
             # as well as own own at the end of the loop,
             # which allows us to unwind the current stack. 
             try:
@@ -362,7 +365,7 @@ def getFullLibraryPath(path, hint=None, *, verbose=True):
         raise NameError("Enter a valid filepath")
 
     # Was path already good?
-    if os.path.exists(path):
+    if path_exists(path):
         return path
 
     if verbose:
@@ -374,8 +377,8 @@ def getFullLibraryPath(path, hint=None, *, verbose=True):
 
     # Begin process of finding file 
     search_dirs = _lib_path_search_dir_list_builder(hint)
-    basename, filename = os.path.split(path)
-    ext = os.path.splitext(filename)[1]
+    basename, filename = path_split(path)
+    ext = path_splitext(filename)[1]
 
     #helper function for cases 1, 2.1, 3.
     def do_dispatch(search_func, path=path, v_print=v_print):
@@ -399,7 +402,7 @@ def getFullLibraryPath(path, hint=None, *, verbose=True):
     # Next, given filename with base, but no extension
     elif basename and (not ext):
 
-        drive, _tail = os.path.splitdrive(basename)
+        drive, _tail = path_splitdrive(basename)
 
         if not drive:  # partially qualified base, search dirs
             v_print("\nAttempting to find partially qualified name \'%s\' ..." % path)
@@ -419,9 +422,9 @@ def getFullLibraryPath(path, hint=None, *, verbose=True):
         raise NameError("Unable to find file %s" % path)
 
 
-def ListFullDir(dirname, os_listdir=os.listdir):
+def ListFullDir(dirname, os_listdir=listdir):
     """Sometimes it is inconvenient to have to
-    type '\\'.join(basename, filename) when calling os.listdir
+    type '\\'.join(basename, filename) when calling listdir
     to get the full path, so here's a shortcut func.
 
     """
@@ -560,7 +563,7 @@ if __name__ == '__main__':
     mytuple = list(range(1, 6))
     print(mytuple)
     print(list(reversed(mytuple)))
-    print(len(mytuple) - 1 - next(i for i,v in enumerate(reversed(mytuple)) if v < 3))
+    print(len(mytuple) - 1 - next(i for i, v in enumerate(reversed(mytuple)) if v < 3))
     
     
     
