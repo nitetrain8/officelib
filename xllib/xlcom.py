@@ -314,9 +314,10 @@ def xlBook2(filepath=None, new_xl=False, visible=True, verbose=True):
 
 
 def xlObjs(filename=None, new=False, visible=True, verbose=True):
-    """easy return of excel app object,
+    """
+    Easy return of excel app object,
     workbook object, worksheet object , cells
-    object in one func
+    object in one func.
 
     Update 1/15/2014-
     After excessive refactoring of the "get excel stuff" family of functions,
@@ -330,6 +331,8 @@ def xlObjs(filename=None, new=False, visible=True, verbose=True):
                     set to false to do heavy computation before showing.
     @param verbose: echo actions to console
     @return 4-tuple: of (xlApplication, xlWorkbook, xlWorksheet, worksheet cells)
+    @rtype: (officelib.xllib.typehint.th0x1x6._Application._Application, officelib.xllib.typehint.th0x1x6._Workbook._Workbook, officelib.xllib.typehint.th0x1x6._Worksheet._Worksheet, officelib.xllib.typehint.th0x1x6.Range.Range)
+
     """
     
     if verbose:
