@@ -6,9 +6,11 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="module" module-name="MSOffice" />
     <orderEntry type="module" module-name="pbslib" />
     <orderEntry type="module" module-name="recipemaker" />
+    <orderEntry type="module" module-name="source" />
+    <orderEntry type="module" module-name="pysrc" />
+    <orderEntry type="module" module-name="scripts" />
   </component>
   <component name="PackageRequirementsSettings">
     <option name="requirementsPath" value="" />
