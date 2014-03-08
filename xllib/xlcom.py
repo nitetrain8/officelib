@@ -490,7 +490,7 @@ def CreateChart(worksheet,
     not otherwise specified.
 
     @param worksheet: worksheet instance
-    @type worksheet: win32com.gen_py.typehint0x1x6._Worksheet._Worksheet
+    @type worksheet: officelib.xllib.typehint.th0x1x6._Worksheet._Worksheet
     @param ChartType: type of chart as xl enum
     @type ChartType: int
     @param Left: offset from left edge of sheet in points
@@ -501,6 +501,8 @@ def CreateChart(worksheet,
     @type Width: int | float
     @param Height: height of chart in points
     @type Height: int | float
+    @return: new chart
+    @rtype: officelib.xllib.typehint.th0x1x6._Chart._Chart
     """
 
     chart_count = worksheet.ChartObjects().Count
@@ -549,6 +551,8 @@ def FormatChart(chart,
     @type Trendline: int | bool | None
     @param Legend: show legend on chart
     @type Legend: bool | None
+    @return: existing chart
+    @rtype: officelib.xllib.typehint.th0x1x6._Chart._Chart
      """
 
     if SourceData is not None:
@@ -583,6 +587,8 @@ def FormatChart(chart,
         if isinstance(Trendline, bool):
             Trendline = xlLinear
         AddTrendlines(chart, Trendline)
+
+    return chart
 
 
 def FormatAxesScale(chart, XAxisMin=None, XAxisMax=None, Y1AxisMin=None,
