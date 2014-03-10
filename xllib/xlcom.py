@@ -356,11 +356,12 @@ def xlObjs(filename=None, new=False, visible=True, verbose=True):
     # Same as above, but get a fresh workbook
 
     else:
-        
+
         xl = Excel(new=new, visible=visible, verbose=verbose)
         wb = __ensure_wb(xl)
         ws = __ensure_ws(wb)
         cells = ws.Cells
+
         v_print("Returning new Excel instance objects.")
 
     return xl, wb, ws, cells
