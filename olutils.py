@@ -3,13 +3,20 @@ Created on Dec 2, 2013
 
 @author: PBS Biotech
 """
+from collections import OrderedDict
 
 from os import name as os_name, walk as os_walk, listdir
 import ctypes.wintypes
 
 #wintypes const values
-from os.path import normpath, exists as path_exists, expanduser as path_expanduser, \
-    splitext as path_splitext, split as path_split, splitdrive as path_splitdrive
+from os.path import normpath as _normpath, exists as _exists, expanduser as _expanduser, \
+    splitext as _splitext, split as _split, splitdrive as _splitdrive, join as _join
+
+
+class OfficeLibError(Exception):
+    """Base Exception for Officelib Errors"""
+    pass
+
 
 CSIDL_PERSONAL = 5  # My Docs
 CSIDL_COMMON_DOCUMENTS = 46
@@ -35,7 +42,7 @@ def getWorkDir():
         except OSError:
             pass
 
-    user = path_expanduser("~")
+    user = _expanduser("~")
 
     docs = 'Documents'
     mydocs = 'My Documents'
@@ -43,7 +50,7 @@ def getWorkDir():
 
     for folder in folders:
         workdir = ''.join((user, folder))
-        if path_exists(workdir):
+        if _exists(workdir):
             return workdir.replace('/', '\\')
 
     return None
@@ -65,7 +72,7 @@ def getWinUserDocs():
     if hresult != 0:  # SHGetFolderPathW returned error
         raise OSError("Failed to find user's Documents folder")
 
-    return normpath(buf.value)
+    return _normpath(buf.value)
 
 
 def getWinCommonDocs():
@@ -81,7 +88,7 @@ def getWinCommonDocs():
     if hresult != 0:
         raise OSError("Failed to find common Documents folder")
 
-    return normpath(buf.value)
+    return _normpath(buf.value)
 
 
 def getDownloadDir():
@@ -101,59 +108,17 @@ def getDownloadDir():
     need to make custom c structure.
     """
     try:
-        user = path_expanduser("~")
+        user = _expanduser("~")
     except:
         # Todo- figure out how to find dl folder on mac?
         raise
 
     dl_dir = '\\'.join([user, "Downloads"])
-    if not path_exists(dl_dir):
+    if not _exists(dl_dir):
         raise FileNotFoundError("Couldn't find downloads folder")
 
     return dl_dir.replace('/', '\\')
 
-
-def getFileExtension(filepath, splitext=path_splitext):
-    """
-    @param filepath: filepath
-    @type filepath: str
-    @return: extension or None (or is it ''?)
-    @rtype: str | None
-    """
-    base, ext = splitext(filepath)
-    if base and not ext:
-        if base[0] == '.' and '\\' not in base and '/' not in base:
-            return base
-        else:
-            return ''
-    else:
-        return ext
-
-
-def getUniqueName(filename):
-    """ Give a base filename plus extension -> get unique filename
-
-    @param filename- the base filename minus extension
-    @type filename: str
-    """
-
-    root, extension = path_splitext(filename)
-
-    exists = path_exists
-
-    unique_name = filename
-    exists_counter = 0
-    while exists(unique_name):
-        exists_counter += 1
-        unique_name = ''.join((
-                            root,
-                            "(",
-                            str(exists_counter),
-                            ")",
-                            extension
-                            ))
-
-    return unique_name
 
 from weakref import WeakValueDictionary, ref
 
@@ -167,9 +132,9 @@ class SingletonWrapper(type):
 
         #  First check class to see if it implemented its own self_ reference
         try:
-            self_ = cls._selfref()
-            if self_ is not None and self_.__class__ is cls:
-                return self_
+            self = cls._selfref()
+            if self is not None and self.__class__ is cls:
+                return self
         except AttributeError:
             pass
 
@@ -177,10 +142,10 @@ class SingletonWrapper(type):
         try:
             return SingletonWrapper.__instances__[cls]
         except KeyError:
-            self_ = type.__call__(cls, *args)
-            cls._selfref = ref(self_)
-            SingletonWrapper.__instances__[cls] = self_
-            return self_
+            self = type.__call__(cls, *args)
+            cls._selfref = ref(self)
+            SingletonWrapper.__instances__[cls] = self
+            return self
 
 
 class Singleton(metaclass=SingletonWrapper):
@@ -194,8 +159,6 @@ class Singleton(metaclass=SingletonWrapper):
 
 def _get_lib_path_no_basename(filename, target_folder):
     """Internal function to find a lib path given filename with extension.
-    Search directory currently only targets Excel.Application.DefaultFilePath
-    aka library.
 
     Iterate through directory, if matching filename found, return it.
 
@@ -217,11 +180,11 @@ def _get_lib_path_no_basename(filename, target_folder):
         if filename in filenames:
             return "\\".join((dirpath, filename))
 
-    raise NameError('''Couldn't find file %s in user's default library
+    raise FileNotFoundError('''Couldn't find file %s in user's default library
     after scanning all files in %s.''' % (filename, target_folder))
 
 
-def _get_lib_path_no_extension(filepath, splitext=path_splitext):
+def _get_lib_path_no_extension(filepath, splitext=_splitext):
     """Internal function to find file when given basepath but
     no file extension.
 
@@ -234,7 +197,7 @@ def _get_lib_path_no_extension(filepath, splitext=path_splitext):
     @type filepath: str
     @rtype: str
     """
-    base, head = path_split(filepath)
+    base, head = _split(filepath)
 
     for entry in listdir(base):
 
@@ -243,10 +206,42 @@ def _get_lib_path_no_extension(filepath, splitext=path_splitext):
         if ext and filename == head:  # if not ext, then we have a dir, not filename
             return '\\'.join((base, entry))
 
-    raise NameError("No file extension given.\nUnable guess proper extension for file %s" % filepath)
+    raise FileNotFoundError(filepath)
 
 
-def _get_lib_path_no_ctxt(filename, target_folder, listdir=listdir, splitext=path_splitext):
+def __dir_scan(filename, directory, listdir=listdir, splitext=_splitext):
+    """
+    Internal recursive helper function for _get_lib_path_no_ctxt
+
+    @param filename: str
+    @type filename: str
+    @param directory: str
+    @type directory: str
+    @return: filename, or none
+    @rtype: str | None
+    """
+    try:
+        dirs = listdir(directory)
+    except OSError:
+        return None
+
+    for path in dirs:
+        name, ext = splitext(path)
+
+        # check ext -> if empty, we have a directory
+        if ext and (name == filename):
+            return '\\'.join((directory, path))
+
+        # catch errors from listdir (NotADirectoryError)
+        # as well as FileNotFoundError own at the end of the loop,
+        # which allows us to unwind the current stack.
+        result = __dir_scan(filename, '\\'.join((directory, path)))
+        if result:
+            return result
+    return None
+
+
+def _get_lib_path_no_ctxt(filename, target_folder, dir_scan=__dir_scan):
     """Internal function to find file when given neither basepath
     nor extension (no context)
 
@@ -256,35 +251,15 @@ def _get_lib_path_no_ctxt(filename, target_folder, listdir=listdir, splitext=pat
     @rtype: str
 
     """
-    def dir_scan(directory, filename=filename, listdir=listdir, splitext=splitext):
-        for entry in listdir(directory):
-
-            name, ext = splitext(entry)
-
-            # check ext -> if empty, we have a directory, move on
-            # had problems with os.path.isdir in the past
-            if ext and (name == filename):
-                return '\\'.join((directory, entry))
-
-            # catch errors from listdir (NotADirectoryError)
-            # as well as own own at the end of the loop,
-            # which allows us to unwind the current stack. 
-            try:
-                return dir_scan('\\'.join((directory, entry)))
-            except:
-                pass
-
-        raise StopIteration
-
-    try:
-        return dir_scan(target_folder)
-    except:
-        raise NameError("Couldn't find file \'%s\' in any library folder.\nEnter a valid file path with extension" % filename)
+    result = dir_scan(filename, target_folder)
+    if result:
+        return result
+    raise FileNotFoundError("Couldn't find file \'%s\' in any library folder.\nEnter a valid file path with extension" % filename)
 
 
 def _lib_path_search_dir_list_builder(folder_hint=None, *folder_hints):
     """Helper function to build the list of folders in which
-    to search for getFullLibraryPath() function.
+    to search for getFullFilename() function.
 
     @param folder_hint(s): folder(s) to include in search.
                             pass in a list of strings.
@@ -294,48 +269,32 @@ def _lib_path_search_dir_list_builder(folder_hint=None, *folder_hints):
     @return: list of folders to search
     """
 
-    folders = []
+    # Ensure each folder is only checked once, preserve order w/ ordered dict
+    folders = OrderedDict()
 
     if folder_hint:
-        folders.append(folder_hint)
+        folders[folder_hint] = folder_hint
 
     if folder_hints:
-        folders.extend(folder_hints)
+        folders.update((f, f) for f in folder_hints)
 
-    # These next functions throw error on failure to return,
-    # so capture in individual try blocks.
-    # also make sure they're not already in there 
+    user_docs = getWinUserDocs()
+    common_docs = getWinCommonDocs()
+    dl_folder = getDownloadDir()
 
-    try:
-        user_docs = getWinUserDocs()
-        if user_docs not in folders:
-            folders.append(user_docs)
-    except:
-        pass
+    folders[user_docs] = user_docs
+    folders[common_docs] = common_docs
+    folders[dl_folder] = dl_folder
 
-    try:
-        common_docs = getWinCommonDocs()
-        if common_docs not in folders:
-            folders.append(common_docs)
-    except:
-        pass
-
-    try:
-        dl_folder = getDownloadDir()
-        if dl_folder not in folders:
-            folders.append(dl_folder)
-    except:
-        pass
-
-    return folders
+    return [f.replace('/', '\\') for f in folders]
 
 
-def getFullLibraryPath(path, hint=None, *, verbose=True):
+def getFullFilename(path, hint=None, *, verbose=True, __v_print=lambda *_: None):
     """ Function to get full library path. Figure out
     what's in the path iteratively, based on 3 common scenarios.
 
     @param path: a filepath or filename
-    @type path: str
+    @type path: T <= str
     @param hint: the first directory tree in which to search for the file
     @type hint: str
     @return: full library path to existing file.
@@ -361,62 +320,58 @@ def getFullLibraryPath(path, hint=None, *, verbose=True):
     In all, there is much less text in the areas in which the dispatch is called.
     """
 
-    if not path:
-        raise NameError("Enter a valid filepath")
+    path = _normpath(path)  # Normalize sep type
 
     # Was path already good?
-    if path_exists(path):
+    if _exists(path):
         return path
 
     if verbose:
-        v_print = print
-    else:
-        v_print = lambda *_: None
-
-    path = path.replace('/', '\\')  # Normalize sep type
+        __v_print = print
 
     # Begin process of finding file 
     search_dirs = _lib_path_search_dir_list_builder(hint)
-    basename, filename = path_split(path)
-    ext = path_splitext(filename)[1]
+    basename, filename = _split(path)
+    ext = _splitext(filename)[1]
 
     #helper function for cases 1, 2.1, 3.
-    def do_dispatch(search_func, path=path, v_print=v_print):
+    def dispatch_search(search_func, path=path, __v_print=__v_print):
         for directory in search_dirs:
-            v_print("Searching %s" % directory)
+            __v_print("Searching %s" % directory)
             try:
                 return search_func(path, directory)
-            except:
+            except FileNotFoundError:
                 pass
-
         else:
             err_msg = '\n'.join(("Couldn't find \'%s\' in the following places:\n" % path,
-                                '\n'.join(search_dirs)))
+                                 '\n'.join(search_dirs)))
             raise NameError(err_msg)
 
     # Most likely- given a filename with no base, but with extension
     if (not basename) and ext:
-        v_print("\nNo directory given for \'%s\', scanning for file..." % path)
-        return do_dispatch(_get_lib_path_no_basename)
+        __v_print("\nNo directory given for \'%s\', scanning for file..." % path)
+        return dispatch_search(_get_lib_path_no_basename)
 
     # Next, given filename with base, but no extension
     elif basename and (not ext):
 
-        drive, _tail = path_splitdrive(basename)
+        drive, _tail = _splitdrive(basename)
 
-        if not drive:  # partially qualified base, search dirs
-            v_print("\nAttempting to find partially qualified name \'%s\' ..." % path)
-            return do_dispatch(_get_lib_path_no_basename)
+        # partially qualified base, search dirs. I don't think this works well.
+        # I don't think I managed to get a working unittest for it.
+        if not drive:
+            __v_print("\nAttempting to find partially qualified name \'%s\' ..." % path)
+            return dispatch_search(_get_lib_path_no_basename)
 
         else:  # fully qualified base, just check the dir for matching name
-            v_print("No file extension given for \'%s\', scanning for file..." % path)
+            __v_print("No file extension given for \'%s\', scanning for file..." % path)
             return _get_lib_path_no_extension(path)
 
     # Finally, user gave no context- no base or extension. 
     # Try really hard to find it anyway.
     elif (not basename) and (not ext):
-        v_print("\nNo context given for filename, scanning for file.\nIf you give a full filepath, you wouldn't \nhave to wait for the long search.")
-        return do_dispatch(_get_lib_path_no_ctxt)
+        __v_print("\nNo context given for filename, scanning for file.\nIf you give a full filepath, you wouldn't \nhave to wait for the long search.")
+        return dispatch_search(_get_lib_path_no_ctxt)
 
     else:
         raise NameError("Unable to find file %s" % path)
@@ -551,11 +506,11 @@ if __name__ == '__main__':
 #     xl = xllib.Excel(visible=True)
 #     xlFolder = xl.DefaultFilePath
 #     try:
-#         print(getFullLibraryPath('mytest', xlFolder))
-#         print(getFullLibraryPath(filename1, xlFolder))
-#         print(getFullLibraryPath(filename2, xlFolder))
-#         print(getFullLibraryPath(filename3, xlFolder))
-#         print(getFullLibraryPath(filename4))
+#         print(getFullFilename('mytest', xlFolder))
+#         print(getFullFilename(filename1, xlFolder))
+#         print(getFullFilename(filename2, xlFolder))
+#         print(getFullFilename(filename3, xlFolder))
+#         print(getFullFilename(filename4))
 #     finally:
 #         xl.Quit()
 #

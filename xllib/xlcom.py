@@ -9,6 +9,20 @@ around win32com and win32com.client dispatches, returning
 win32com dispatch objects.
 
 
+Section 1: Available Types
+==========================
+
+    class xllib.HiddenXl(xl)
+        Context manager to hide the registered xl Application instance
+        during data processing.
+
+Section 2: Functions
+====================
+
+    2.1
+
+
+
 Update 1/16/2014
 
 Lots of constant update over the months!
@@ -43,30 +57,16 @@ from win32com.client.gencache import EnsureModule, GetModuleForCLSID, EnsureDisp
 from win32com.client.CLSIDToClass import GetClass
 # noinspection PyUnresolvedReferences
 from pythoncom import com_error as py_com_error
-from tkinter.filedialog import askopenfilenames
 from datetime import datetime
 from os.path import split as path_split
-from officelib.olutils import getFullLibraryPath
+from officelib.olutils import getFullFilename
 from officelib.const import xlLinear, xlByRows, xlDiagonalUp, xlContinuous, \
                                         xlDiagonalDown, xlNone, xlEdgeTop, \
                                         xlEdgeBottom, xlEdgeRight, xlEdgeLeft, xlInsideHorizontal, \
                                         xlInsideVertical, xlXYScatter, xlPrimary, xlSecondary, xlCategory, xlValue
-from officelib import OfficeLibError
 
 from officelib.xllib.wincom_type_hint import update_typehints
-
-
-class xllibDefaultArg():
-    """Create a new class so that 'None' can be
-    distinguished from "Did not pass an arg"
-
-    This should only be needed where we want wrap a series
-    of wincom function calls through a single wrapper, but want
-    to avoid a function call, as opposed to sending "None" or a default.
-
-    eg, don't change chart Title, rather than resetting it to "None".
-    """
-    pass
+from officelib.olutils import OfficeLibError
 
 
 class xlLibError(OfficeLibError):
@@ -106,7 +106,7 @@ def AddTrendlines(xlchart, linetype=xlLinear):
         trendline.DisplayRSquared = True
 
 
-# Exists just to use as a reference
+# Exists just to use as a reference, do not use
 def find_cell_by_text(cells, text, SearchOrder=xlByRows, startRow=1, startCol=1):
     return cells.Find(What=text, After=cells(startRow, startCol), SearchOrder=SearchOrder)
     
@@ -123,8 +123,9 @@ def __ws_is_empty(ws):
     count = used_range.Count
     if count > 1:
         return False
-    else:  # worksheet shows count of 1 for both empty and only single cell
-        return bool(used_range.Columns) and bool(used_range.Rows)
+
+    # worksheet shows count of 1 for both empty and only single cell
+    return bool(used_range.Columns) and bool(used_range.Rows)
 
 
 def __wb_is_empty(wb):
@@ -156,7 +157,7 @@ def __find_empty_wb(xl):
 def __ensure_wb(xl):
     """ Internal use.
     @param xl: excel application from win32com.
-
+    @return: workbook instance
     Make sure a new workbook is returned for
     dispatching functions.
     """
@@ -164,16 +165,19 @@ def __ensure_wb(xl):
     wb = __find_empty_wb(xl)
     if wb is not None:
         return wb
-        
     return xl.Workbooks.Add()
     
     
 def __ensure_ws(wb):
-    
+    """
+    @param wb: Workbook instance
+    @type wb: Workbook
+    @return: Worksheet
+    @rtype:
+    """
     if not wb.Worksheets.Count:
         return wb.Worksheets.Add()
-    else:
-        return wb.Worksheets(1)
+    return wb.Worksheets(1)
     
     
 def Excel(new=False, visible=True, verbose=True, v_print=__v_print_none):
@@ -288,7 +292,7 @@ def xlBook2(filepath=None, new_xl=False, visible=True, verbose=True):
     
     # Workbook wasn't open, get filepath and open it.
     try:
-        filepath = getFullLibraryPath(filepath, hint=xl.DefaultFilePath, verbose=verbose)
+        filepath = getFullFilename(filepath, hint=xl.DefaultFilePath, verbose=verbose)
     except:
         if new_xl:
             xl.Quit()
@@ -431,22 +435,17 @@ def ChangeBorders(RemoveRange=None, AddRange=None, BorderType=xlContinuous):
         Selection.Borders(xlInsideHorizontal).LineStyle = BorderType
 
 
-def prompt_files(multiple=True):
-    allowedfiletypes = ["{Text, csv} {.txt .csv}", "{Excel} {.xlsx .xls}", "{All} {.*}"]
-#     initialdir = "C:/Users/Public/Documents/PBSSS"
-    initialdir = "C:/Users/PBS Biotech/Downloads"
-    files = askopenfilenames(filetypes=allowedfiletypes, multiple=multiple, initialdir=initialdir).strip("{}").split("} {")
-    if isinstance(files, str):
-        files = [files]
-    return files
-
-
 def xl_date_to_float(date_strings, date_fmt="%m/%d/%Y %I:%M:%S %p"):
 
     """Give list of dates and times (dates w/o time are assumed at midnight
     in any date_fmt, with corresponding (and correct) date date_fmt string, get
     a list back that gives the dates in units of days since Dec 31, 1899.
-    This is how xl stores dates as floats."""
+    This is how xl stores dates as floats.
+
+    3/11/2014:
+    Legacy function
+
+    """
 
     # See python docs on datetime module for interpretation of
     # date_fmt options. TL;DR: default date_fmt is month/day/year hour minute

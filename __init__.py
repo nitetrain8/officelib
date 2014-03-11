@@ -18,7 +18,4 @@ olutils- misc utility functions and classes
 """
 
 
-class OfficeLibError(Exception):
-    """Base Exception for Officelib Errors"""
-    pass
 
