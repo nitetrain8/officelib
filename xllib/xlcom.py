@@ -53,12 +53,12 @@ Update 1/29/2014:
     to the python <-> COM server communication process.
 """
 
-from win32com.client import DispatchEx
-from win32com.client.gencache import EnsureModule, GetModuleForCLSID, EnsureDispatch
-from win32com.client.CLSIDToClass import GetClass
+
+from win32com.client.gencache import EnsureDispatch
+
 # noinspection PyUnresolvedReferences
 from pythoncom import com_error as py_com_error
-from datetime import datetime
+
 from os.path import split as _split, splitext as _splitext
 from officelib.olutils import getFullFilename
 from officelib.const import xlLinear, xlByRows, xlDiagonalUp, xlContinuous, \
@@ -66,7 +66,7 @@ from officelib.const import xlLinear, xlByRows, xlDiagonalUp, xlContinuous, \
                                         xlEdgeBottom, xlEdgeRight, xlEdgeLeft, xlInsideHorizontal, \
                                         xlInsideVertical, xlXYScatter, xlPrimary, xlSecondary, xlCategory, xlValue
 
-from officelib.xllib.wincom_type_hint import update_typehints
+
 from officelib.olutils import OfficeLibError
 
 
@@ -94,6 +94,18 @@ XL_COL_WIDTH = 8.34  # units?
 # noinspection PyUnusedLocal
 def __v_print_none(*args, **kwargs):
     pass
+
+v_print = __v_print_none
+
+
+def echo_on():
+    global v_print
+    v_print = print
+
+
+def echo_off():
+    global v_print
+    v_print = __v_print_none
 
 
 def AddTrendlines(xlchart, linetype=xlLinear):
@@ -181,13 +193,10 @@ def __ensure_ws(wb):
     return wb.Worksheets(1)
     
     
-def Excel(new=False, visible=True, verbose=True, v_print=__v_print_none):
+def Excel(new=False, visible=True):
     """Get running Excel instance if possible, else
     return new instance.
     """
-    
-    if verbose:
-        v_print = print
 
     if new:
         xl = EnsureNewDispatch("Excel.Application")
@@ -201,7 +210,7 @@ def Excel(new=False, visible=True, verbose=True, v_print=__v_print_none):
     return xl
     
     
-def xlBook(filepath=None, new_xl=False, visible=True, verbose=True):
+def xlBook(filepath=None, new=False, visible=True):
     """Get win32com workbook object from filepath.
     If workbook is open, get active object.
     If workbook is not open, create a new instance of
@@ -215,10 +224,13 @@ def xlBook(filepath=None, new_xl=False, visible=True, verbose=True):
     have focus.
 
     @param filepath: valid filepath
+    @type filepath: str
     @param visible: xl instance visible to user?
                     turn off to do heavy processing before showing
-    @param new_xl: open in a new window
-    @param verbose- echo progress to console
+    @type visible: bool | int
+    @param new: open in a new window
+    @type new: bool | int
+
 
     @return: = the newly opened xl workbook instance
 
@@ -227,14 +239,14 @@ def xlBook(filepath=None, new_xl=False, visible=True, verbose=True):
 
     Update 1/29/2014- rewote and moved most logic to new function
     xlBook2. This function now supplies an identical interface to old xlBook, for backward
-    compatibility with existing code.
+    compatibility with existing code. Use xlBook2 for everything.
     """
 
-    _xl, wb = xlBook2(filepath, new_xl, visible, verbose)
+    _xl, wb = xlBook2(filepath, new, visible)
     return wb
     
 
-def xlBook2(filepath=None, new_xl=False, visible=True, verbose=True):
+def xlBook2(filepath=None, new=False, visible=True):
     """Get win32com workbook object from filepath.
     If workbook is open, get active object.
     If workbook is not open, create a new instance of
@@ -252,10 +264,8 @@ def xlBook2(filepath=None, new_xl=False, visible=True, verbose=True):
     @param visible: xl instance visible to user?
                     turn off to do heavy processing before showing
     @type visible: bool
-    @param new_xl: open in a new window
-    @type new_xl: bool
-    @param verbose: echo progress to console
-    @type verbose: bool
+    @param new: open in a new window
+    @type new: bool
 
     @return: the newly opened xl workbook instance
     @rtype: (xllib.typehint.typehint0x1x6._Worksheet._Worksheet, xllib.typehint.typehint0x1x6._Application._Application)
@@ -271,20 +281,15 @@ def xlBook2(filepath=None, new_xl=False, visible=True, verbose=True):
     Update 1/31/2014- renamed function xlBook2, now public.
     """
 
-    if verbose:
-        v_print = print
-    else:
-        v_print = __v_print_none
-
-    xl = Excel(new=new_xl, visible=visible, verbose=verbose)
+    xl = Excel(new, visible)
 
     if not filepath:
         wb = __ensure_wb(xl)
         return xl, wb
 
-        # First try to see if passed name of open workbook
     _base, name = _split(filepath)
     name, ext = _splitext(name)
+    # First try to see if passed name of open workbook
     try:
         wb = xl.Workbooks(name)
     except:
@@ -293,35 +298,34 @@ def xlBook2(filepath=None, new_xl=False, visible=True, verbose=True):
         wb.Activate()
         v_print("\'%s\' found, returning existing workbook." % filepath)
         return xl, wb
+
     # Workbook wasn't open, get filepath and open it.
     try:
-        filepath = getFullFilename(filepath, hint=xl.DefaultFilePath, verbose=verbose)
-    except:
-        # cleanup excel if filepath wasn't found.
-        if new_xl:
+        filepath = getFullFilename(filepath, hint=xl.DefaultFilePath)
+    except FileNotFoundError:
+        # cleanup if filepath wasn't found.
+        if new:
             xl.Quit()
         else:
             xl.Visible = True
-        raise xlLibError("Couldn't find path specified, check that it is correct.")
+        raise xlLibError("Couldn't find path '%s', check that it is correct." % filepath)
 
-    v_print("Attempting to create new workbook for \"%s\"." % filepath)
     try:
         wb = xl.Workbooks.Open(filepath, Notify=False)
-    except py_com_error as e:
-        raise xlLibError("Unknown error occurred.") from e
+    except:
+        if new:
+            xl.Quit()
+        else:
+            xl.Visible = True
+    else:
+        v_print("Filename \'%s\' found.\nReturning newly opened workbook." % filepath)
+        wb.Activate()
+        return xl, wb
 
-    v_print("Filename \'%s\' found.\nReturning newly opened workbook." % filepath)
-    wb.Activate()
-    return xl, wb
-
-    # This is unreachable, but will catch anything falling through
-    # if the above block is refactored. 
-
-    # noinspection PyUnreachableCode
-    raise xlLibError("Unknown error occurred. \nCheck filename, if the target file is open, ensure\nno dialogs are open.")
+    raise xlLibError("Unknown error occurred. \nCheck filename. If the target file is open, ensure\nno dialogs are open.")
 
 
-def xlObjs(filename=None, new=False, visible=True, verbose=True):
+def xlObjs(filename=None, new=False, visible=True):
     """
     Easy return of excel app object,
     workbook object, worksheet object , cells
@@ -334,38 +338,30 @@ def xlObjs(filename=None, new=False, visible=True, verbose=True):
     Ask for a filename (or none), get all the objects. Yay.
 
     @param filename: the filename to open. New excel if None.
+    @type filename: str
     @param new: open a new excel application window. sometimes doesn't work.
+    @type new: bool | int
     @param visible: make the excel application visible before returning.
                     set to false to do heavy computation before showing.
-    @param verbose: echo actions to console
+    @type visible: bool | int
     @return 4-tuple: of (xlApplication, xlWorkbook, xlWorksheet, worksheet cells)
     @rtype: (officelib.xllib.typehint.th0x1x6._Application._Application, officelib.xllib.typehint.th0x1x6._Workbook._Workbook, officelib.xllib.typehint.th0x1x6._Worksheet._Worksheet, officelib.xllib.typehint.th0x1x6.Range.Range)
 
     """
-    
-    if verbose:
-        v_print = print
-    else:
-        v_print = __v_print_none
-        
+
     # get the workbook by calling the xlBook function
     # get other objects directly and return them as a tuple
         
     if filename is not None:
-        xl, wb = xlBook2(filename,
-                            new_xl=new,
-                            visible=visible,  
-                            verbose=verbose)
-
+        xl, wb = xlBook2(filename, new, visible)
         ws = __ensure_ws(wb)
         cells = ws.Cells
+
         v_print("Returning Excel instance objects.")
         
     # Same as above, but get a fresh workbook
-
     else:
-
-        xl = Excel(new=new, visible=visible, verbose=verbose)
+        xl = Excel(new, visible)
         wb = __ensure_wb(xl)
         ws = __ensure_ws(wb)
         cells = ws.Cells
@@ -384,7 +380,11 @@ def EnsureNewDispatch(prog_id, bForDemand=1):  # New fn, so we default the new d
     # allows creation of new instance of com object
     # while still generating makepy python class
 
-    """Given a COM prog_id, return an object that is using makepy support, building if necessary"""
+    from win32com.client import DispatchEx
+    from win32com.client.CLSIDToClass import GetClass
+    from win32com.client.gencache import EnsureModule, GetModuleForCLSID
+
+    # Given a COM prog_id, return an object that is using makepy support, building if necessary
     disp = DispatchEx(prog_id)
     if not disp.__dict__.get("CLSID"):  # Eeek - no makepy support - try and build it.
         try:
@@ -447,15 +447,15 @@ def xl_date_to_float(date_strings, date_fmt="%m/%d/%Y %I:%M:%S %p"):
     This is how xl stores dates as floats.
 
     3/11/2014:
-    Legacy function
+    Legacy function that should never be used ever.
 
     """
 
     # See python docs on datetime module for interpretation of
     # date_fmt options. TL;DR: default date_fmt is month/day/year hour minute
     # second AM/PM
-
-    strptime = datetime.strptime
+    import datetime
+    strptime = datetime.datetime.strptime
 
     # For clarity
     def timedelta_to_float(timedelta):
@@ -468,7 +468,7 @@ def xl_date_to_float(date_strings, date_fmt="%m/%d/%Y %I:%M:%S %p"):
         return [timedelta_to_float(strptime(date_string, date_fmt) - xlStartDateTime)
                                 for date_string in date_strings if date_string != '']
     except ValueError:
-        raise xlDateFormatError("Invalid date date_fmt")
+        raise xlDateFormatError("Invalid date format %s " % date_fmt)
         
 
 def col_to_csv(*lists):
@@ -711,7 +711,7 @@ class HiddenXl():
 
 
 if __name__ == '__main__':
-    
+
     # insert unit tests here (?)
     # xl = EnsureDispatch("Excel.Application")
     # xl.Visible = True
@@ -719,6 +719,7 @@ if __name__ == '__main__':
     # chart = wb.Charts("Off to Auto")
     #
     # FormatAxesScale(chart, *[1 for i in range(6)])
+    from officelib.xllib.wincom_type_hint import update_typehints
     update_typehints()
 
 

@@ -12,6 +12,7 @@ import unittest
 from os import makedirs
 from os.path import dirname, join, exists, normpath, split, splitext
 from shutil import rmtree
+# noinspection PyUnresolvedReferences
 from officelib.olutils import getFullFilename, _get_lib_path_no_extension, _get_lib_path_no_ctxt,\
     _get_lib_path_no_basename, _lib_path_search_dir_list_builder
 __author__ = 'PBS Biotech'
@@ -80,7 +81,7 @@ class TestGetFullFilename(unittest.TestCase):
             if not exists(file):
                 raise self.failureException("Temp directory unexpectedly absent")
             expected = normpath(file)
-            result = getFullFilename(file, temp_dir, verbose=False)
+            result = getFullFilename(file, temp_dir)
 
             self.assertEqual(expected, result)
 
@@ -99,11 +100,11 @@ class TestGetFullFilename(unittest.TestCase):
 
             name, ext = splitext(file)
             expected = normpath(file)
-            result = getFullFilename(name, temp_dir, verbose=False)
+            result = getFullFilename(name, temp_dir)
 
             self.assertEqual(expected, result)
 
-            result2 = getFullFilename(name, verbose=False)
+            result2 = getFullFilename(name)
             self.assertEqual(expected, result2)
 
     def test_get_full_filename_name_only_ext(self):
@@ -117,11 +118,12 @@ class TestGetFullFilename(unittest.TestCase):
             base, name = split(file)
 
             expected = normpath(file)
-            result = getFullFilename(name, temp_dir, verbose=False)
+
+            result = getFullFilename(name, temp_dir)
 
             self.assertEqual(expected, result)
 
-            result2 = getFullFilename(name, verbose=False)
+            result2 = getFullFilename(name)
             self.assertEqual(expected, result2)
 
     def test_get_full_filename_dir_no_ctxt(self):
@@ -132,7 +134,6 @@ class TestGetFullFilename(unittest.TestCase):
         @return:
         @rtype:
         """
-
         for file in self.files:
             if not exists(file):
                 raise self.failureException("Temp directory unexpectedly absent")
@@ -143,13 +144,16 @@ class TestGetFullFilename(unittest.TestCase):
             name = name.rstrip('\\/')
             expected = normpath(file)
 
-            result = getFullFilename(name, temp_dir, verbose=False)
+            # noinspection PyTypeChecker
+            result = getFullFilename(name, temp_dir)
             self.assertEqual(expected, result)
 
-            result2 = getFullFilename(name, verbose=False)
+            # noinspection PyTypeChecker
+            result2 = getFullFilename(name)
             self.assertEqual(expected, result2)
-
 
 
 if __name__ == '__main__':
     unittest.main()
+    # import cProfile
+    # cProfile.run("unittest.main()")
