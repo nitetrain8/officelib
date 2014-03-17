@@ -294,7 +294,7 @@ def getFullFilename(path, hint=None, *, verbose=True, __v_print=lambda *_: None)
     what's in the path iteratively, based on 3 common scenarios.
 
     @param path: a filepath or filename
-    @type path: T <= str
+    @type path: str
     @param hint: the first directory tree in which to search for the file
     @type hint: str
     @return: full library path to existing file.
@@ -320,7 +320,7 @@ def getFullFilename(path, hint=None, *, verbose=True, __v_print=lambda *_: None)
     In all, there is much less text in the areas in which the dispatch is called.
     """
 
-    path = _normpath(path)  # Normalize sep type
+    path = path.replace('/', '\\')  # Normalize sep type
 
     # Was path already good?
     if _exists(path):
@@ -343,13 +343,12 @@ def getFullFilename(path, hint=None, *, verbose=True, __v_print=lambda *_: None)
             except FileNotFoundError:
                 pass
         else:
-            err_msg = '\n'.join(("Couldn't find \'%s\' in the following places:\n" % path,
-                                 '\n'.join(search_dirs)))
-            raise NameError(err_msg)
+            raise FileNotFoundError('\n'.join(("Couldn't find \'%s\' in the following places:\n" % path,
+                                 '\n'.join(search_dirs))))
 
     # Most likely- given a filename with no base, but with extension
     if (not basename) and ext:
-        __v_print("\nNo directory given for \'%s\', scanning for file..." % path)
+        __v_print(path.join(("\nNo directory given for \'", "\', scanning for file...")))
         return dispatch_search(_get_lib_path_no_basename)
 
     # Next, given filename with base, but no extension

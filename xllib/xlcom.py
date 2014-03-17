@@ -16,10 +16,11 @@ Section 1: Available Types
         Context manager to hide the registered xl Application instance
         during data processing.
 
-Section 2: Functions
+Section 2: Basic Connection to Excel
 ====================
 
-    2.1
+    2.1 xlObjs ([filename[new[visible]]]) -> xl, wb, ws, cells
+    2.2 xlBook2 ([filename[new[visible]]]) -> xl, wb
 
 
 
@@ -58,7 +59,7 @@ from win32com.client.CLSIDToClass import GetClass
 # noinspection PyUnresolvedReferences
 from pythoncom import com_error as py_com_error
 from datetime import datetime
-from os.path import split as path_split
+from os.path import split as _split, splitext as _splitext
 from officelib.olutils import getFullFilename
 from officelib.const import xlLinear, xlByRows, xlDiagonalUp, xlContinuous, \
                                         xlDiagonalDown, xlNone, xlEdgeTop, \
@@ -193,6 +194,7 @@ def Excel(new=False, visible=True, verbose=True, v_print=__v_print_none):
         v_print("New Excel instance created, returning object.")
     else:
         xl = EnsureDispatch("Excel.Application")
+        v_print("Opening Excel instance.")
     
     xl.Visible = visible
 
@@ -268,38 +270,40 @@ def xlBook2(filepath=None, new_xl=False, visible=True, verbose=True):
 
     Update 1/31/2014- renamed function xlBook2, now public.
     """
-    
+
     if verbose:
         v_print = print
     else:
         v_print = __v_print_none
-        
+
     xl = Excel(new=new_xl, visible=visible, verbose=verbose)
-        
+
     if not filepath:
         wb = __ensure_wb(xl)
-        return xl, wb 
-    
-    # First try to see if passed name of open workbook
+        return xl, wb
+
+        # First try to see if passed name of open workbook
+    _base, name = _split(filepath)
+    name, ext = _splitext(name)
     try:
-        _base, name = path_split(filepath)
         wb = xl.Workbooks(name)
+    except:
+        pass
+    else:
         wb.Activate()
         v_print("\'%s\' found, returning existing workbook." % filepath)
         return xl, wb
-    except:
-        pass
-    
     # Workbook wasn't open, get filepath and open it.
     try:
         filepath = getFullFilename(filepath, hint=xl.DefaultFilePath, verbose=verbose)
     except:
+        # cleanup excel if filepath wasn't found.
         if new_xl:
             xl.Quit()
         else:
             xl.Visible = True
         raise xlLibError("Couldn't find path specified, check that it is correct.")
-        
+
     v_print("Attempting to create new workbook for \"%s\"." % filepath)
     try:
         wb = xl.Workbooks.Open(filepath, Notify=False)
@@ -309,7 +313,7 @@ def xlBook2(filepath=None, new_xl=False, visible=True, verbose=True):
     v_print("Filename \'%s\' found.\nReturning newly opened workbook." % filepath)
     wb.Activate()
     return xl, wb
-        
+
     # This is unreachable, but will catch anything falling through
     # if the above block is refactored. 
 
