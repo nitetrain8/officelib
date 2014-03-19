@@ -53,20 +53,25 @@ class TestGetFullFilename(unittest.TestCase):
 
         files = []
 
+        def make(file):
+            with open(file, 'w') as _:
+                pass
+
         for n, L1 in enumerate(temp_dirs):
             for i, L2 in enumerate(temp_dirs2):
                 tmp_dir = join(L1, L2)
+
                 try:
                     makedirs(tmp_dir)
                 except FileExistsError:
                     pass
+
                 for j, file in enumerate(temp_temp):
                     tmp_name = ''.join((file, str(n), str(i), str(j), ".tmp"))
                     tmp_file = join(tmp_dir, tmp_name)
+                    make(tmp_file)
+                    files.append(normpath(tmp_file))
 
-                    with open(tmp_file, 'w') as _:
-                        pass
-                    files.append(tmp_file)
         cls.files = files
 
     def test_get_full_filename_exact(self):
@@ -161,11 +166,24 @@ class TestGetFullFilename(unittest.TestCase):
         td = len(temp_dir)
         files = [f[td:] for f in self.files]
         for path, expected in zip(files, self.files):
+
             base, name = split(path)
-            result = getFullFilename(path, temp_dir)
-            self.assertEqual(expected, result)
-            result2 = _get_lib_path_parital_qualname(name, base, (temp_dir,))
-            self.assertEqual(expected, result2)
+
+            # test inner function
+            direct_result = _get_lib_path_parital_qualname(name, base, (temp_dir,))
+            self.assertEqual(expected, direct_result, base + path)
+
+            # test public interface
+            full_result = getFullFilename(path, temp_dir)
+            self.assertEqual(expected, full_result)
+
+            # results should be the same
+            self.assertEqual(full_result, direct_result)
+
+            # splitext returns '\' in front of name. remove that
+            noslash = _get_lib_path_parital_qualname(name, base.lstrip('\\/'), (temp_dir,))
+            self.assertEqual(noslash, full_result)
+
 
     def test_get_lib_path_partial_name_noext(self):
         """
@@ -175,11 +193,24 @@ class TestGetFullFilename(unittest.TestCase):
         td = len(temp_dir)
         files = [splitext(f[td:])[0] for f in self.files]
         for path, expected in zip(files, self.files):
+
             base, name = split(path)
-            result = getFullFilename(path, temp_dir)
-            self.assertEqual(expected, result)
-            result2 = _get_lib_path_parital_qualname(name, base, (temp_dir,))
-            self.assertEqual(expected, result2)
+
+            # test inner function
+            direct_result = _get_lib_path_parital_qualname(name, base, (temp_dir,))
+            self.assertEqual(expected, direct_result)
+
+            # test public interface
+            full_result = getFullFilename(path, temp_dir)
+            self.assertEqual(expected, full_result)
+
+            # results should be the same
+            self.assertEqual(full_result, direct_result)
+
+            # splitext returns '\' in front of name. remove that
+            noslash = _get_lib_path_parital_qualname(name, base.lstrip('\\/'), (temp_dir,))
+            self.assertEqual(noslash, full_result)
+
 
 if __name__ == '__main__':
     unittest.main()

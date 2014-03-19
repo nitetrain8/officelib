@@ -214,6 +214,8 @@ def _get_lib_path_parital_qualname(name, base, search_dirs, splitext=_splitext):
     @rtype: str
     """
     ext = splitext(name)[1]
+    if not (base.startswith('\\') or base.startswith('/')):
+        base = '\\' + base
     if ext:
         for fldr in search_dirs:
             path = fldr + base
