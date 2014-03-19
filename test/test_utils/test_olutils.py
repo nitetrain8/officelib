@@ -14,7 +14,8 @@ from os.path import dirname, join, exists, normpath, split, splitext
 from shutil import rmtree
 # noinspection PyUnresolvedReferences
 from officelib.olutils import getFullFilename, _get_lib_path_no_extension, _get_lib_path_no_ctxt,\
-    _get_lib_path_no_basename, _lib_path_search_dir_list_builder
+    _get_lib_path_no_basename, _lib_path_search_dir_list_builder, _get_lib_path_parital_qualname
+
 __author__ = 'PBS Biotech'
 
 curdir = dirname(__file__)
@@ -152,18 +153,33 @@ class TestGetFullFilename(unittest.TestCase):
             result2 = getFullFilename(name)
             self.assertEqual(expected, result2)
 
-    def test_get_lib_path_partial_name(self):
+    def test_get_lib_path_partial_name_ext(self):
         """
         @return:
         @rtype:
         """
         td = len(temp_dir)
         files = [f[td:] for f in self.files]
-        for test, expected in zip(files, self.files):
-            result = getFullFilename(test, temp_dir)
-            self.assertEqual(result, expected)
-            result2 = _get_lib_path_parital_qualname(name, (temp_dir,))
+        for path, expected in zip(files, self.files):
+            base, name = split(path)
+            result = getFullFilename(path, temp_dir)
+            self.assertEqual(expected, result)
+            result2 = _get_lib_path_parital_qualname(name, base, (temp_dir,))
+            self.assertEqual(expected, result2)
 
+    def test_get_lib_path_partial_name_noext(self):
+        """
+        @return:
+        @rtype:
+        """
+        td = len(temp_dir)
+        files = [splitext(f[td:])[0] for f in self.files]
+        for path, expected in zip(files, self.files):
+            base, name = split(path)
+            result = getFullFilename(path, temp_dir)
+            self.assertEqual(expected, result)
+            result2 = _get_lib_path_parital_qualname(name, base, (temp_dir,))
+            self.assertEqual(expected, result2)
 
 if __name__ == '__main__':
     unittest.main()

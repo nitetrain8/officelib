@@ -15,12 +15,16 @@ from os.path import normpath as _normpath, exists as _exists, expanduser as _exp
 def __v_print_none(*args, **kwargs):
     pass
 
+
+def __v_print(*args, **kwargs):
+    print(*args, sep='', **kwargs)
+
 v_print = __v_print_none
 
 
 def echo_on():
     global v_print
-    v_print = print
+    v_print = __v_print
 
 
 def echo_off():
@@ -197,6 +201,38 @@ def __dir_scan_nosplit(filename, directory, listdir=_listdir):
     return None
 
 
+def _get_lib_path_parital_qualname(name, base, search_dirs, splitext=_splitext):
+    """
+    Internal function to search for partially qualified names
+    @param name: filename
+    @type name: str
+    @param base: parially qualified base to join with name
+    @type base: str
+    @param search_dirs: search dirs
+    @type search_dirs: list[str] or tuple[str]
+    @return: str
+    @rtype: str
+    """
+    ext = splitext(name)[1]
+    if ext:
+        for fldr in search_dirs:
+            path = fldr + base
+            for file in _listdir(path):
+                if file == name:
+                    return '\\'.join((path, name))
+
+    else:
+        for fldr in search_dirs:
+            path = fldr + base
+            for file in _listdir(path):
+                file, ext = splitext(file)
+                # test presence of ext to exclude dirs
+                if ext and file == name:
+                    return ''.join((path, "\\", name, ext))
+
+    raise FileNotFoundError("Partially qualified name %s not found" % '\\'.join((base, name)))
+
+
 def _get_lib_path_no_basename(filename, search_dirs, scanner=__dir_scan_nosplit):
     """Internal function to find a lib path given filename with extension.
 
@@ -232,7 +268,9 @@ def _get_lib_path_no_extension(filepath, splitext=_splitext):
     base, head = _split(filepath)
     for entry in _listdir(base):
         filename, ext = splitext(entry)
-        if ext and filename == head:  # if not ext, then we have a dir, not filename
+        # if not ext, then we have a dir, not filename
+        # test ext first to short circuit non-files
+        if ext and filename == head:
             return '\\'.join((base, entry))
     raise FileNotFoundError("File '%s' not found via no-extension search" % filepath)
 
@@ -284,37 +322,31 @@ def _get_lib_path_no_ctxt(filename, search_dirs, scanner=__dir_scan):
     raise FileNotFoundError("File %s not found via no-context search." % filename)
 
 
-__user_work_dirs = None
-
-
 def __get_work_dirs():
     """
     @return: Set of folders corresponding to user work dirs (my docs, downloads...)
     @rtype: set
     """
     wrk = set()
-    try:
-        user_docs = getWinUserDocs()
-        wrk.add(user_docs)
-    except:
-        pass
 
-    try:
-        common_docs = getWinCommonDocs()
-        wrk.add(common_docs)
-    except:
-        pass
+    get_funcs = (
+                getWinUserDocs,
+                getWinCommonDocs,
+                getDownloadDir
+                )
 
-    try:
-        dl_folder = getDownloadDir()
-        wrk.add(dl_folder)
-    except:
-        pass
+    for func in get_funcs:
+        try:
+            fldr = func()
+        except:
+            pass
+        else:
+            wrk.add(fldr)
 
     return {f.replace('/', '\\') for f in wrk}
 
 
-def _lib_path_search_dir_list_builder(folder_hint=None, *folder_hints):
+def _lib_path_search_dir_list_builder(folder_hint=None, *folder_hints, workdirs=__get_work_dirs()):
     """Helper function to build the list of folders in which
     to search for getFullFilename() function.
 
@@ -325,19 +357,15 @@ def _lib_path_search_dir_list_builder(folder_hint=None, *folder_hints):
     @return: list of folders to search
     """
 
-    global __user_work_dirs
-    if __user_work_dirs is None:
-        __user_work_dirs = __get_work_dirs()
-
     fldrs = []
-    if folder_hint and folder_hint not in __user_work_dirs:
+    if folder_hint and folder_hint not in workdirs:
         fldrs.append(folder_hint.replace('/', '\\'))
 
     for folder in folder_hints:
-        if folder not in __user_work_dirs:
+        if folder not in workdirs:
             fldrs.append(folder.replace('/', '\\'))
 
-    fldrs.extend(__user_work_dirs)
+    fldrs.extend(workdirs)
 
     return fldrs
 
@@ -355,8 +383,10 @@ def getFullFilename(path, hint=None):
 
     Try to find the path by checking for three common cases:
 
-    1. filename with extension but no base.
-    2. filename with base but no extension
+    1. filename with extension
+        - base
+        - no base
+    2. filename with only base
         2.1 partially qualified directory name
         2.2 fully qualified directory name
     3. neither one
@@ -381,38 +411,46 @@ def getFullFilename(path, hint=None):
 
     # Begin process of finding file 
     search_dirs = _lib_path_search_dir_list_builder(hint)
-    basename, filename = _split(path)
-    ext = _splitext(filename)[1]
+    base, name = _split(path)
+    ext = _splitext(name)[1]
 
-    # Most likely- given a filename with no base, but with extension
-    if (not basename) and ext:
-        v_print(path.join(("\nNo directory given for \'", "\', scanning for file...")))
+    # Most likely- given extension.
+    # no need to check for case of fully qualified basename.
+    # an existing file with a fully qualified base name and extension would
+    # be caught by earlier _exists()
+    if ext:
+        if base:
+            v_print('\nPartially qualified filename \'', path, "\' given, searching for file...")
+            return _get_lib_path_parital_qualname(name, base, search_dirs)
+
+        # else
+        v_print("\nNo directory given for \'", path, "\', scanning for file...")
         return _get_lib_path_no_basename(path, search_dirs)
 
     # Next, given filename with base, but no extension
-    elif basename and (not ext):
+    elif base:
 
-        drive, _tail = _splitdrive(basename)
+        drive, _tail = _splitdrive(base)
 
         # fully qualified base, just check the dir for matching name
         if drive:
-            v_print("\nNo file extension given for \'%s\', scanning for file..." % path)
+            v_print("\nNo file extension given for \'", path, "\', scanning for file...")
             return _get_lib_path_no_extension(path)
 
         # partially qualified base, search dirs. I don't think this works well (at all).
         # I don't think I managed to get a working unittest for it.
         else:
-            v_print("\nAttempting to find partially qualified name \'%s\' ..." % path)
-            return _get_lib_path_no_basename(path, search_dirs)
+            v_print("\nAttempting to find partially qualified name \'", path, "\' ...")
+            return _get_lib_path_parital_qualname(name, base, search_dirs)
 
     # Finally, user gave no context- no base or extension. 
     # Try really hard to find it anyway.
-    elif (not basename) and (not ext):
+    else:
         v_print("\nNo context given for filename, scanning for file.\nIf you give a full filepath, you wouldn't \nhave to wait for the long search.")
         return _get_lib_path_no_ctxt(path, search_dirs)
 
-    else:
-        raise FileNotFoundError("Unable to find file " + path)
+    # noinspection PyUnreachableCode
+    raise SystemExit("Unreachable code reached: fix module olutils")
 
 
 def ListFullDir(dirname):
