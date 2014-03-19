@@ -180,7 +180,7 @@ class TestGetFullFilename(unittest.TestCase):
             # results should be the same
             self.assertEqual(full_result, direct_result)
 
-            # splitext returns '\' in front of name. remove that
+            # splitext returns '\' in front of name. remove that and assert again.
             noslash = _get_lib_path_parital_qualname(name, base.lstrip('\\/'), (temp_dir,))
             self.assertEqual(noslash, full_result)
 
@@ -207,7 +207,7 @@ class TestGetFullFilename(unittest.TestCase):
             # results should be the same
             self.assertEqual(full_result, direct_result)
 
-            # splitext returns '\' in front of name. remove that
+            # splitext returns '\' in front of name. remove that and assert again.
             noslash = _get_lib_path_parital_qualname(name, base.lstrip('\\/'), (temp_dir,))
             self.assertEqual(noslash, full_result)
 
