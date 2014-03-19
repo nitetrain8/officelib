@@ -152,6 +152,18 @@ class TestGetFullFilename(unittest.TestCase):
             result2 = getFullFilename(name)
             self.assertEqual(expected, result2)
 
+    def test_get_lib_path_partial_name(self):
+        """
+        @return:
+        @rtype:
+        """
+        td = len(temp_dir)
+        files = [f[td:] for f in self.files]
+        for test, expected in zip(files, self.files):
+            result = getFullFilename(test, temp_dir)
+            self.assertEqual(result, expected)
+            result2 = _get_lib_path_parital_qualname(name, (temp_dir,))
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -289,6 +289,7 @@ def xlBook2(filepath=None, new=False, visible=True):
 
     _base, name = _split(filepath)
     name, ext = _splitext(name)
+
     # First try to see if passed name of open workbook
     try:
         wb = xl.Workbooks(name)
