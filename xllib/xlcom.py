@@ -288,31 +288,45 @@ def xlBook2(filepath=None, new=False, visible=True):
         return xl, wb
 
     _base, name = _split(filepath)
-    name, ext = _splitext(name)
+    no_ext_name, ext = _splitext(name)
 
     # First try to see if passed name of open workbook
-    try:
-        wb = xl.Workbooks(name)
-    except:
-        pass
-    else:
-        wb.Activate()
-        v_print("\'%s\' found, returning existing workbook." % filepath)
-        return xl, wb
+    # xl can be a pain, so try with and without ext.
+    # this is super ugly. It would be much easier clearer
+    # with goto statements.
+    wbs = xl.Workbooks
+    possible_names = (
+        filepath.lstrip("\\/"),
+        no_ext_name,
+        name
+    )
+
+    if wbs.Count:
+        for fname in possible_names:
+            try:
+                wb = wbs(fname)
+            except:
+                pass
+            else:
+                v_print("\'%s\' found, returning existing workbook." % filepath)
+                wb.Activate()
+
+                return xl, wb
 
     # Workbook wasn't open, get filepath and open it.
     try:
+        v_print("Searching for file...")
         filepath = getFullFilename(filepath, hint=xl.DefaultFilePath)
-    except FileNotFoundError:
+    except FileNotFoundError as e:
         # cleanup if filepath wasn't found.
         if new:
             xl.Quit()
         else:
             xl.Visible = True
-        raise xlLibError("Couldn't find path '%s', check that it is correct." % filepath)
+        raise xlLibError("Couldn't find path '%s', check that it is correct." % filepath) from e
 
     try:
-        wb = xl.Workbooks.Open(filepath, Notify=False)
+        wb = wbs.Open(filepath, Notify=False)
     except:
         if new:
             xl.Quit()

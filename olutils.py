@@ -213,20 +213,33 @@ def _get_lib_path_parital_qualname(name, base, search_dirs, splitext=_splitext):
     @return: str
     @rtype: str
     """
+    error = FileNotFoundError
     ext = splitext(name)[1]
     if not (base.startswith('\\') or base.startswith('/')):
         base = '\\' + base
     if ext:
         for fldr in search_dirs:
             path = fldr + base
-            for file in _listdir(path):
+
+            try:
+                files = _listdir(path)
+            except error:
+                continue
+
+            for file in files:
                 if file == name:
                     return '\\'.join((path, name))
 
     else:
         for fldr in search_dirs:
             path = fldr + base
-            for file in _listdir(path):
+
+            try:
+                files = _listdir(path)
+            except error:
+                continue
+
+            for file in files:
                 file, ext = splitext(file)
                 # test presence of ext to exclude dirs
                 if ext and file == name:
@@ -348,7 +361,10 @@ def __get_work_dirs():
     return {f.replace('/', '\\') for f in wrk}
 
 
-def _lib_path_search_dir_list_builder(folder_hint=None, *folder_hints, workdirs=__get_work_dirs()):
+lib_search_dirs = None
+
+
+def _lib_path_search_dir_list_builder(folder_hint=None, *folder_hints):
     """Helper function to build the list of folders in which
     to search for getFullFilename() function.
 
@@ -358,6 +374,11 @@ def _lib_path_search_dir_list_builder(folder_hint=None, *folder_hints, workdirs=
 
     @return: list of folders to search
     """
+
+    global lib_search_dirs
+    if lib_search_dirs is None:
+        lib_search_dirs = __get_work_dirs()
+    workdirs = lib_search_dirs
 
     fldrs = []
     if folder_hint and folder_hint not in workdirs:

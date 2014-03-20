@@ -145,6 +145,18 @@ def update_files(old):
         copy2(src, dst)
 
 
+def check_old():
+    try:
+        reference = load_hint_timestamps()
+    except:
+        init_hint_folder()
+        return []
+
+    wincom = dict(gen_py_flatten(gen_py_basepath))
+    old = find_old_files(wincom, reference)
+    return old
+
+
 def update_typehints():
     """
     @return: None
