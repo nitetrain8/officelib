@@ -173,6 +173,7 @@ def __ensure_wb(xl):
     @return: workbook instance
     Make sure a new workbook is returned for
     dispatching functions.
+    @rtype: xllib.typehint.th0x1x6._Workbook._Workbook
     """
     
     wb = __find_empty_wb(xl)
@@ -186,7 +187,7 @@ def __ensure_ws(wb):
     @param wb: Workbook instance
     @type wb: Workbook
     @return: Worksheet
-    @rtype:
+    @rtype: xllib.typehint.th0x1x6._Worksheet._Worksheet
     """
     if not wb.Worksheets.Count:
         return wb.Worksheets.Add()
@@ -233,6 +234,7 @@ def xlBook(filepath=None, new=False, visible=True):
 
 
     @return: = the newly opened xl workbook instance
+    @rtype: xllib.typehint.th0x1x6._Workbook._Workbook
 
     Update 1/15/2014- Lots of refactoring to make it really clean and such.
     Or so I tried.
@@ -268,7 +270,7 @@ def xlBook2(filepath=None, new=False, visible=True):
     @type new: bool
 
     @return: the newly opened xl workbook instance
-    @rtype: (xllib.typehint.typehint0x1x6._Worksheet._Worksheet, xllib.typehint.typehint0x1x6._Application._Application)
+    @rtype: (xllib.typehint.th0x1x6._Application._Application, xllib.typehint.th0x1x6._Workbook._Workbook)
 
     Update 1/15/2014- Lots of refactoring to make it really clean and such.
     Or so I tried.
