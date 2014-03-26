@@ -40,6 +40,7 @@ def tearDownModule():
 
 
 class TestGetFullFilename(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         """
@@ -183,7 +184,6 @@ class TestGetFullFilename(unittest.TestCase):
             # splitext returns '\' in front of name. remove that and assert again.
             noslash = _get_lib_path_parital_qualname(name, base.lstrip('\\/'), (temp_dir,))
             self.assertEqual(noslash, full_result)
-
 
     def test_get_lib_path_partial_name_noext(self):
         """
