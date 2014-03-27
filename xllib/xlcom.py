@@ -185,7 +185,7 @@ def __ensure_wb(xl):
 def __ensure_ws(wb):
     """
     @param wb: Workbook instance
-    @type wb: Workbook
+    @type wb: _Workbook
     @return: Worksheet
     @rtype: xllib.typehint.th0x1x6._Worksheet._Worksheet
     """
