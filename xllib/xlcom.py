@@ -270,7 +270,7 @@ def xlBook2(filepath=None, new=False, visible=True):
     @type new: bool
 
     @return: the newly opened xl workbook instance
-    @rtype: (xllib.typehint.th0x1x6._Application._Application, xllib.typehint.th0x1x6._Workbook._Workbook)
+    @rtype: (typehint.ExcelApplication, typehint.ExcelWorkbook)
 
     Update 1/15/2014- Lots of refactoring to make it really clean and such.
     Or so I tried.
@@ -294,8 +294,6 @@ def xlBook2(filepath=None, new=False, visible=True):
 
     # First try to see if passed name of open workbook
     # xl can be a pain, so try with and without ext.
-    # this is super ugly. It would be much easier clearer
-    # with goto statements.
     wbs = xl.Workbooks
     possible_names = (
         filepath.lstrip("\\/"),
@@ -308,7 +306,7 @@ def xlBook2(filepath=None, new=False, visible=True):
             try:
                 wb = wbs(fname)
             except:
-                pass
+                continue
             else:
                 v_print("\'%s\' found, returning existing workbook." % filepath)
                 wb.Activate()
