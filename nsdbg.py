@@ -31,6 +31,7 @@ def sys_exit():
 def npp_open(filename=debug_file):
 
     args = ''.join((' '.join(debug_view_cmd), ' "', filename, '"'))
+    print([args])
     try:
         Popen(args)
     except:
