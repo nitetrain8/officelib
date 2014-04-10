@@ -127,7 +127,7 @@ class AliasManager():
                             weak_alias_namerule=None, 
                             strong_alias=None,
                             strong_alias_namerule=None):
-        
+
         _g = self._generate_from_rule
         
         if weak_alias_namerule:
