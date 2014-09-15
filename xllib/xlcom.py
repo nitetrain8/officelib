@@ -474,15 +474,15 @@ def xl_date_to_float(date_strings, date_fmt="%m/%d/%Y %I:%M:%S %p"):
     strptime = datetime.datetime.strptime
 
     # For clarity
-    def timedelta_to_float(timedelta):
+    def t2f(timedelta):
         sec_per_day = 86400
         return timedelta.days + timedelta.seconds / sec_per_day
 
     # datetime object set to an Excel floating point date time value of '0'
     xlStartDateTime = strptime('12/31/1899', '%m/%d/%Y')
     try:
-        return [timedelta_to_float(strptime(date_string, date_fmt) - xlStartDateTime)
-                                for date_string in date_strings if date_string != '']
+        return [t2f(strptime(ds, date_fmt) - xlStartDateTime)
+                                for ds in date_strings if ds != '']
     except ValueError:
         raise xlDateFormatError("Invalid date format %s " % date_fmt)
         
@@ -491,7 +491,8 @@ def col_to_csv(*lists):
     """Turn data from excel Range.Values into exportable format for csv
     Basically, invert rows/columns.
 
-    Speculation based on name (docstring written months later)."""
+    Speculation based on name (docstring written months later).
+    Bad function do not use. """
     return '\n'.join([str(x).strip("()") for x in list(zip(*lists))])
 
 
