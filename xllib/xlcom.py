@@ -262,7 +262,7 @@ def xlBook2(filepath=None, new=False, visible=True):
     have focus.
 
     @param filepath: valid filepath
-    @type filepath: str
+    @type filepath: str | None
     @param visible: xl instance visible to user?
                     turn off to do heavy processing before showing
     @type visible: bool
