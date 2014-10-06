@@ -609,8 +609,6 @@ def FormatChart(chart,
             Trendline = xlLinear
         AddTrendlines(chart, Trendline)
 
-    return chart
-
 
 def FormatAxesScale(chart, XAxisMin=None, XAxisMax=None, Y1AxisMin=None,
                             Y1AxisMax=None, Y2AxisMin=None, Y2AxisMax=None):
