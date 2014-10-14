@@ -17,5 +17,3 @@ olutils- misc utility functions and classes
 
 """
 
-
-
