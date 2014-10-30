@@ -63,8 +63,10 @@ from os.path import split as _split, splitext as _splitext
 from officelib.olutils import getFullFilename
 from officelib.const import xlLinear, xlByRows, xlDiagonalUp, xlContinuous, \
                                         xlDiagonalDown, xlNone, xlEdgeTop, \
-                                        xlEdgeBottom, xlEdgeRight, xlEdgeLeft, xlInsideHorizontal, \
-                                        xlInsideVertical, xlXYScatter, xlPrimary, xlSecondary, xlCategory, xlValue
+                                        xlEdgeBottom, xlEdgeRight, xlEdgeLeft, \
+                                        xlInsideHorizontal, xlInsideVertical, \
+                                        xlXYScatter, xlPrimary, xlSecondary, \
+                                        xlCategory, xlValue
 
 
 from officelib.olutils import OfficeLibError
@@ -111,8 +113,7 @@ def echo_off():
 def AddTrendlines(xlchart, linetype=xlLinear):
 
     sc = xlchart.SeriesCollection()
-    for i in range(1, sc.Count + 1):
-        series = sc(i)
+    for series in sc:
         trendline = series.Trendlines().Add()
         trendline.Type = linetype
         trendline.DisplayEquation = True
@@ -717,11 +718,14 @@ class HiddenXl():
         self.xl = xl
 
     def __enter__(self):
+        self._old_visible = self.xl.Visible
         self.xl.Visible = False
+        self.xl.DisplayAlerts = False
 
     # noinspection PyUnusedLocal
     def __exit__(self, *_args):
-        self.xl.Visible = True
+        self.xl.Visible = self._old_visible
+        self.xl.DisplayAlerts = True
         return False
 
 

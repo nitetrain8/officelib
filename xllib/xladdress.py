@@ -71,6 +71,36 @@ def cellRangeStr(cell1, cell2, cellStr=cellStr):
     return ':'.join((cellStr(*cell1), cellStr(*cell2)))
 
 
+def chart_range_strs(xcol, ycol, top, bottom, ws_name=''):
+    """
+    @param left: left column
+    @param top: top row
+    @param bottom: end row
+    @param ws_name: name of worksheet
+    @return: (str, str)
+
+    One of the most common uses of cellRangeStr is to add a set of
+    columns as the source data for a chart. This function makes that
+    easier.
+    """
+    # ws_name must be quoted + exclamation in excel formula
+    if ws_name:
+        ws_name = "'%s'!" % ws_name
+
+    xrng = cellRangeStr(
+        (top, xcol), (bottom, ycol)
+    )
+
+    yrng = cellRangeStr(
+        (top, ycol), (bottom, ycol)
+    )
+
+    xrng = ws_name + xrng
+    yrng = ws_name + yrng
+
+    return xrng, yrng
+
+
 def xlrange(start, stop, step=1):
     """excel uses 1-based index, use xlrange
     to convert 0-index based range generator to
