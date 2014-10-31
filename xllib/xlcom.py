@@ -17,7 +17,7 @@ Section 1: Available Types
         during data processing.
 
 Section 2: Basic Connection to Excel
-====================
+==========================
 
     2.1 xlObjs ([filename[new[visible]]]) -> xl, wb, ws, cells
     2.2 xlBook2 ([filename[new[visible]]]) -> xl, wb
@@ -78,7 +78,6 @@ class xlLibError(OfficeLibError):
 
 
 class xlDateFormatError(xlLibError):
-    """Pass"""
     pass
 
 
@@ -415,7 +414,8 @@ def EnsureNewDispatch(prog_id, bForDemand=1):  # New fn, so we default the new d
             disp_class = GetClass(str(disp_clsid))
             disp = disp_class(disp._oleobj_)
         except py_com_error:
-            raise TypeError("This COM object can not automate the makepy process - please run makepy manually for this object")
+            raise TypeError("This COM object can not automate the makepy process "
+                            "- please run makepy manually for this object")
     return disp
 
 
