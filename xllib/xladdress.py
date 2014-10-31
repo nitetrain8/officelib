@@ -73,7 +73,8 @@ def cellRangeStr(cell1, cell2, cellStr=cellStr):
 
 def chart_range_strs(xcol, ycol, top, bottom, ws_name=''):
     """
-    @param left: left column
+    @param xcol: x column
+    @param ycol: y column
     @param top: top row
     @param bottom: end row
     @param ws_name: name of worksheet

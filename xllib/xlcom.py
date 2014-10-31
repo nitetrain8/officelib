@@ -661,12 +661,7 @@ def FormatAxesScale(chart, XAxisMin=None, XAxisMax=None, Y1AxisMin=None,
             yAxis2.MaximumScale = Y2AxisMax
 
 
-def CreateDataSeries(chart,
-                     XValues,
-                     YValues,
-                     Name=None,
-                     SeriesLabels=None,
-                     CategoryLabels=None):
+def CreateDataSeries(chart, XValues, YValues, Name=''):
     """
     @param chart: chart to create data series for
     @type chart: win32com.gen_py.typehint0x1x6._Chart._Chart
@@ -676,19 +671,11 @@ def CreateDataSeries(chart,
     @type YValues: str
     @param Name: Str or Address string in format "=SheetName!Cell"
     @type Name: str
-    @param SeriesLabels: NotImplemented
-    @type SeriesLabels: NotImplemented
-    @param CategoryLabels: NotImplemented
-    @type CategoryLabels: NotImplemented
     @return: New Data Series
     @rtype: win32com.gen_py.typehint0x1x6.Series.Series
     """
 
-    if SeriesLabels is not None or CategoryLabels is not None:  # todo
-        raise NotImplemented
-
     SeriesCollection = chart.SeriesCollection()
-
     Series = SeriesCollection.NewSeries()
 
     Series.XValues = XValues
@@ -714,7 +701,8 @@ class HiddenXl():
     upon entering, and automatically shows it again upon
     exiting, regardless of errors thrown during context.
     """
-    def __init__(self, xl):
+    def __init__(self, xl, preserve_status=True):
+        self.preserve_status = preserve_status
         self.xl = xl
 
     def __enter__(self):
@@ -724,7 +712,10 @@ class HiddenXl():
 
     # noinspection PyUnusedLocal
     def __exit__(self, *_args):
-        self.xl.Visible = self._old_visible
+        if self.preserve_status:
+            self.xl.Visible = self._old_visible
+        else:
+            self.xl.Visible = True
         self.xl.DisplayAlerts = True
         return False
 
