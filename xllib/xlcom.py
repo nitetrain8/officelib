@@ -110,7 +110,9 @@ def echo_off():
 
 
 def AddTrendlines(xlchart, linetype=xlLinear):
-
+    """
+    This may not work, and I don't know why.
+    """
     sc = xlchart.SeriesCollection()
     for series in sc:
         trendline = series.Trendlines().Add()

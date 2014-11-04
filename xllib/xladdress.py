@@ -86,10 +86,12 @@ def chart_range_strs(xcol, ycol, top, bottom, ws_name=''):
     """
     # ws_name must be quoted + exclamation in excel formula
     if ws_name:
-        ws_name = "'%s'!" % ws_name
+        ws_name = "='%s'!" % ws_name
+    else:
+        ws_name = "="
 
     xrng = cellRangeStr(
-        (top, xcol), (bottom, ycol)
+        (top, xcol), (bottom, xcol)
     )
 
     yrng = cellRangeStr(
