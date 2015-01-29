@@ -347,7 +347,7 @@ def __get_work_dirs():
     get_funcs = (
                 getWinUserDocs,
                 getWinCommonDocs,
-                getDownloadDir
+                #getDownloadDir
                 )
 
     for func in get_funcs:

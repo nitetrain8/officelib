@@ -250,7 +250,7 @@ def xlBook(filepath=None, new=False, visible=True):
     return wb
     
 
-def xlBook2(filepath=None, new=False, visible=True):
+def xlBook2(filepath=None, new=False, visible=True, search=False):
     """Get win32com workbook object from filepath.
     If workbook is open, get active object.
     If workbook is not open, create a new instance of
@@ -318,7 +318,9 @@ def xlBook2(filepath=None, new=False, visible=True):
     # Workbook wasn't open, get filepath and open it.
     try:
         v_print("Searching for file...")
-        filepath = getFullFilename(filepath, hint=xl.DefaultFilePath)
+        if search:
+            filepath = getFullFilename(filepath, hint=xl.DefaultFilePath)
+
     except FileNotFoundError as e:
         # cleanup if filepath wasn't found.
         if new:
@@ -343,7 +345,7 @@ def xlBook2(filepath=None, new=False, visible=True):
                      "If the target file is open, ensure\nno dialogs are open.")
 
 
-def xlObjs(filename=None, new=False, visible=True):
+def xlObjs(filename=None, new=False, visible=True, search=False):
     """
     Easy return of excel app object,
     workbook object, worksheet object , cells
@@ -371,7 +373,7 @@ def xlObjs(filename=None, new=False, visible=True):
     # get other objects directly and return them as a tuple
         
     if filename is not None:
-        xl, wb = xlBook2(filename, new, visible)
+        xl, wb = xlBook2(filename, new, visible, search)
         ws = __ensure_ws(wb)
         cells = ws.Cells
 
