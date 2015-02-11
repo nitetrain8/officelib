@@ -112,7 +112,7 @@ def getWinCommonDocs():
 
 def getDownloadDir():
     """
-    @return: filepath of download dir
+    @return: filepath of download_entry dir
     @rtype: str
 
     Todo- figure out a non stupid way to do this. There should be a
