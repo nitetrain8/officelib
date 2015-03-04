@@ -705,7 +705,7 @@ class HiddenXl():
     upon entering, and automatically shows it again upon
     exiting, regardless of errors thrown during context.
     """
-    def __init__(self, xl, preserve_status=True):
+    def __init__(self, xl, preserve_status=False):
         self.preserve_status = preserve_status
         self.xl = xl
 
