@@ -425,8 +425,7 @@ def EnsureNewDispatch(prog_id, bForDemand=1):  # New fn, so we default the new d
 
 def ChangeBorders(RemoveRange=None, AddRange=None, BorderType=xlContinuous):
     """Expanding borders in excel is REALLY ugly.
-    @param: RemoveRange
-        cell range to RemoveRange borders from
+    @param RemoveRange: cell range to RemoveRange borders from
         enter a cell range object
     @param: AddRange
         same thing, but where to AddRange cells.
@@ -537,7 +536,7 @@ def CreateChart(worksheet,
     # will create each new chart in two columns going down at
     # the beginning of the worksheet.
     if Left is None:
-        Left = 20 + chart_count * (20 + Width) * (chart_count % 2)
+        Left = 20 + (20 + Width) * (chart_count % 2)
 
     if Top is None:
         Top = 50 + chart_count // 2 * (50 + Height)
