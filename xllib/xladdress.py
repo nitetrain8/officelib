@@ -80,6 +80,7 @@ def chart_range_strs(xcol, ycol, top, bottom, ws_name=''):
     @param bottom: end row
     @param ws_name: name of worksheet
     @return: (str, str)
+    @rtype: (str, str)
 
     One of the most common uses of cellRangeStr is to add a set of
     columns as the source data for a chart. This function makes that

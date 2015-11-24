@@ -83,7 +83,7 @@ class xlDateFormatError(xlLibError):
 
 # misc constants
 PYLIST_TO_XL_ROW = 2
-XLTIME_TO_SEC = 86400
+XL_TIME_TO_SEC = 86400
 XL_POINT_TO_PIXEL = 24 / 18
 XL_PIXEL_TO_POINT = 18 / 24
 XL_POINT_TO_INCH = 0.25 / 18
@@ -610,7 +610,7 @@ def FormatChart(chart,
             yAxisTitle = str(yAxisTitle)  # allow objects to be used to identify y axis
         yAxis.AxisTitle.Text = yAxisTitle
 
-    if Trendline is not None:
+    if Trendline:
         if isinstance(Trendline, bool):
             Trendline = xlLinear
         AddTrendlines(chart, Trendline)
@@ -688,7 +688,7 @@ def CreateDataSeries(chart, XValues, YValues, Name=''):
 
     if Name and type(Name) is str:
         Series.Name = Name
-    else:
+    elif Name:
         Series.Name = str(Name)
 
     return Series
