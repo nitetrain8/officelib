@@ -342,8 +342,8 @@ def xlBook2(filepath=None, new=False, visible=True, search=False, xl=None):
         wb.Activate()
         return xl, wb
 
-    raise xlLibError("Unknown error occurred. \nCheck filename. "
-                     "If the target file is open, ensure\nno dialogs are open.")
+    raise xlLibError("Unknown error occurred. \nCheck filename: %s "
+                     "If the target file is open, ensure\nno dialogs are open." % filepath)
 
 
 def xlObjs(filename=None, new=False, visible=True, search=False, xl=None):
