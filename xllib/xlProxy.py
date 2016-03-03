@@ -86,3 +86,5 @@ class ChartSeries():
         return self.chart_name
 
     ChartTitle = ChartName
+
+
