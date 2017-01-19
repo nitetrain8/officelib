@@ -23,38 +23,11 @@ Section 2: Basic Connection to Excel
     2.2 xlBook2 ([filename[new[visible]]]) -> xl, wb
 
 
-
-Update 1/16/2014
-
-Lots of constant update over the months!
-
-I felt this was important to point out:
-
-    if verbose:
-        v_print = print
-    else:
-        v_print = __v_print_none  # override print if not verbose
-
-This snippet appears a lot in this library.
-
-This provides an easy runtime way of determining whether to echo
-progress to console.
-
-Originally I just used:
-
-    if not verbose:
-        print = __v_print_none
-
-but the IDE complains about overriding the built-in method.
-
-Update 1/29/2014:
-    Moved to new xllib module, file renamed xlcom.
-    Reduce size of file, begin separating out code that is not relevant
-    to the python <-> COM server communication process.
 """
 
 
-from win32com.client.gencache import EnsureDispatch
+import win32com.client.gencache
+import win32com.client
 
 # noinspection PyUnresolvedReferences
 from pythoncom import com_error as py_com_error
@@ -93,7 +66,7 @@ XL_COL_WIDTH = 8.34  # units?
 
 
 # noinspection PyUnusedLocal
-def __v_print_none(*args, **kwargs):
+def __v_print_none(*_, **__):
     pass
 
 v_print = __v_print_none
@@ -205,7 +178,7 @@ def Excel(new=False, visible=True):
         xl = EnsureNewDispatch("Excel.Application")
         v_print("New Excel instance created, returning object.")
     else:
-        xl = EnsureDispatch("Excel.Application")
+        xl = win32com.client.gencache.EnsureDispatch("Excel.Application")
         v_print("Opening Excel instance.")
     
     xl.Visible = visible
@@ -292,7 +265,7 @@ def xlBook2(filepath=None, new=False, visible=True, search=False, xl=None):
         return xl, wb
 
     _base, name = _split(filepath)
-    no_ext_name, ext = _splitext(name)
+    no_ext_name, _ = _splitext(name)
 
     # First try to see if passed name of open workbook
     # xl can be a pain, so try with and without ext.
@@ -307,7 +280,7 @@ def xlBook2(filepath=None, new=False, visible=True, search=False, xl=None):
         for fname in possible_names:
             try:
                 wb = wbs(fname)
-            except:
+            except py_com_error:
                 continue
             else:
                 v_print("\'%s\' found, returning existing workbook." % filepath)
@@ -332,7 +305,7 @@ def xlBook2(filepath=None, new=False, visible=True, search=False, xl=None):
 
     try:
         wb = wbs.Open(filepath, Notify=False)
-    except:
+    except py_com_error:
         if new:
             xl.Quit()
         else:
@@ -491,15 +464,6 @@ def xl_date_to_float(date_strings, date_fmt="%m/%d/%Y %I:%M:%S %p"):
                                 for ds in date_strings if ds != '']
     except ValueError:
         raise xlDateFormatError("Invalid date format %s " % date_fmt)
-        
-
-def col_to_csv(*lists):
-    """Turn data from excel Range.Values into exportable format for csv
-    Basically, invert rows/columns.
-
-    Speculation based on name (docstring written months later).
-    Bad function do not use. """
-    return '\n'.join([str(x).strip("()") for x in list(zip(*lists))])
 
 
 CHART_WIDTH_DEFAULT = 300
@@ -686,9 +650,7 @@ def CreateDataSeries(chart, XValues, YValues, Name=''):
     Series.XValues = XValues
     Series.Values = YValues
 
-    if Name and type(Name) is str:
-        Series.Name = Name
-    elif Name:
+    if Name:
         Series.Name = str(Name)
 
     return Series
@@ -709,18 +671,37 @@ class HiddenXl():
     def __init__(self, xl, preserve_status=False):
         self.preserve_status = preserve_status
         self.xl = xl
+        self._old_visible = True
 
     def __enter__(self):
-        self._old_visible = self.xl.Visible
+        if self.preserve_status:
+            self._old_visible = self.xl.Visible
         self.xl.Visible = False
         self.xl.DisplayAlerts = False
 
     # noinspection PyUnusedLocal
     def __exit__(self, *_args):
-        if self.preserve_status:
-            self.xl.Visible = self._old_visible
+        self.xl.Visible = self._old_visible
+        self.xl.DisplayAlerts = True
+        return False
+     
+     
+class screen_lock():
+    def __init__(self, xl, preserve=True):
+        self.xl = xl
+        self.preserve = preserve
+        self._status = True
+    def __enter__(self):
+        if self.preserve:
+            self._status = self.xl.ScreenUpdating
+        self.xl.ScreenUpdating = False
+        self.xl.DisplayAlerts = False
+    def __exit__(self, *args):
+        if self.preserve:
+            updating = self._status
         else:
-            self.xl.Visible = True
+            updating = True
+        self.xl.ScreenUpdating = updating
         self.xl.DisplayAlerts = True
         return False
 
@@ -744,4 +725,3 @@ if __name__ == '__main__':
     # print(r)
     # for ws in wb.Worksheets:
     #     print(ws)
-

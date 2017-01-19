@@ -9,7 +9,7 @@ Hold functions related to creating/converting
 xl based cell address to and from python indicies.
 
 """
-from officelib import const
+from officelib.const import xlconst as xlc
 
 
 def cellStr(row, col, AbsoluteColumn=False, AbsoluteRow=False):
@@ -115,16 +115,19 @@ def xlrange(start, stop, step=1):
         
 
 def column_pair_range_str_by_header(cells, header):
-    cell = cells.Find(What=header, After=cells(1, 1), SearchOrder=const.xlByRows)
+    cell = cells.Find(What=header, After=cells(1, 1), SearchOrder=xlc.xlByRows)
     xcol = cell.Column
     ycol = xcol + 1
     top = cell.Row + 1
-    bottom = cell.End(const.xlDown).Row
+    bottom = cell.End(xlc.xlDown).Row
     return chart_range_strs(xcol, ycol, top, bottom, cells.Worksheet.Name)
 
 # Export Aliases
 cellRange = cellRangeStr
 cellAddress = cellStr
+cell_str = cellStr
+cellstr = cellStr
+cell_range = cellRange
 
 
 if __name__ == '__main__':

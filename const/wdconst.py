@@ -8,10 +8,10 @@
 # constants = win32com.client.constants
 # constdict = constants.__dicts__[0]
 # const = sorted(["{0} = {1}".format(k, v) for k, v in constdict.items() if k.startswith("wd")])
-# with open("wdconst.py", 'w') as constlist:
+# with open("wdconst.py", 'w') as f:
     # for i in const:
         # phrase = "%s\n" % i
-        # constlist.write(phrase)
+        # f.write(phrase)
         # print(phrase, end="")
 		
 #===============================================================================
