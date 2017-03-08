@@ -610,16 +610,16 @@ def FormatAxesScale(chart, XAxisMin=None, XAxisMax=None, Y1AxisMin=None,
 
     if XAxisMin or XAxisMax:
         xAxis = chart.Axes(xlCategory, xlPrimary)
-        if XAxisMin:
+        if XAxisMin is not None:
             xAxis.MinimumScale = XAxisMin
-        if XAxisMax:
+        if XAxisMax is not None:
             xAxis.MaximumScale = XAxisMax
 
     if Y1AxisMin or Y1AxisMax:
         yAxis1 = chart.Axes(xlValue, xlPrimary)
-        if Y1AxisMin:
+        if Y1AxisMin is not None:
             yAxis1.MinimumScale = Y1AxisMin
-        if Y1AxisMax:
+        if Y1AxisMax is not None:
             yAxis1.MaximumScale = Y1AxisMax
 
     if Y2AxisMin or Y2AxisMax:
