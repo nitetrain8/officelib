@@ -608,21 +608,21 @@ def FormatAxesScale(chart, XAxisMin=None, XAxisMax=None, Y1AxisMin=None,
     exception may be thrown if accessing non-existent axis.
     """
 
-    if XAxisMin or XAxisMax:
+    if XAxisMin is not None or XAxisMax is not None:
         xAxis = chart.Axes(xlCategory, xlPrimary)
         if XAxisMin is not None:
             xAxis.MinimumScale = XAxisMin
         if XAxisMax is not None:
             xAxis.MaximumScale = XAxisMax
 
-    if Y1AxisMin or Y1AxisMax:
+    if Y1AxisMin is not None or Y1AxisMax is not None:
         yAxis1 = chart.Axes(xlValue, xlPrimary)
         if Y1AxisMin is not None:
             yAxis1.MinimumScale = Y1AxisMin
         if Y1AxisMax is not None:
             yAxis1.MaximumScale = Y1AxisMax
 
-    if Y2AxisMin or Y2AxisMax:
+    if Y2AxisMin is not None or Y2AxisMax is not None:
         yAxis2 = chart.Axes(xlValue, xlSecondary)
         if Y2AxisMin:
             yAxis2.MinimumScale = Y2AxisMin
