@@ -32,7 +32,7 @@ import win32com.client
 # noinspection PyUnresolvedReferences
 from pythoncom import com_error as py_com_error
 
-from os.path import split as _split, splitext as _splitext
+from os.path import split as _split, splitext as _splitext, basename as _path_basename
 from officelib.olutils import getFullFilename
 from officelib.const import xlLinear, xlByRows, xlDiagonalUp, xlContinuous, \
                                         xlDiagonalDown, xlNone, xlEdgeTop, \
@@ -82,6 +82,29 @@ def echo_off():
     v_print = __v_print_none
 
 
+def XLOpen(xl, name):
+    wbs = xl.Workbooks
+
+    # Already open?
+    try:
+        return wbs(name)
+    except py_com_error:
+        pass
+    # full path?
+    try:
+        return wbs.Open(name)
+    except py_com_error:
+        pass
+    # basename? try to find in recent files
+    # note recent file names are full paths
+    for rf in xl.RecentFiles:
+        if _path_basename(rf.Name) == name:
+            return rf.Open()
+
+    raise FileNotFoundError(name)
+
+
+
 def AddTrendlines(xlchart, linetype=xlLinear):
     """
     This may not work, and I don't know why.
@@ -92,6 +115,7 @@ def AddTrendlines(xlchart, linetype=xlLinear):
         trendline.Type = linetype
         trendline.DisplayEquation = True
         trendline.DisplayRSquared = True
+        # trendline.Border.Color = 0  # added for excel 2017
 
 
 # Exists just to use as a reference, do not use

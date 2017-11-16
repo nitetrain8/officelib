@@ -115,7 +115,11 @@ def xlrange(start, stop, step=1):
         
 
 def column_pair_range_str_by_header(cells, header):
-    cell = cells.Find(What=header, After=cells(1, 1), SearchOrder=xlc.xlByRows)
+    # edge chase
+    if cells(1,1).Value == header:
+        cell = cells(1,1)
+    else:
+        cell = cells.Find(What=header, After=cells(1, 1), SearchOrder=xlc.xlByRows)
     xcol = cell.Column
     ycol = xcol + 1
     top = cell.Row + 1
