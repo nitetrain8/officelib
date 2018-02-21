@@ -1,8 +1,24 @@
 import win32com.client as w32_client
 import win32com.client.gencache as w32c_gen
 from pywintypes import com_error  # pylint: disable=I0011,E0611
-from win32com.client import constants as c
+from win32com.client import constants as wincom_const
+from officelib import const as olconst
 import contextlib
+
+class C():
+    def __getattr__(self, a):
+        v = getattr(wincom_const, a, None)
+        if v is None:
+            try:
+                v = getattr(olconst, a)
+            except AttributeError:
+                raise AttributeError("'%s' not found."%a) from None
+        else:
+            assert v == getattr(olconst, a)
+        object.__setattr__(self, a, v)
+        return v
+
+c = C()
 
 @contextlib.contextmanager
 def screen_lock(word):
