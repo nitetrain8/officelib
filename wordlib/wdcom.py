@@ -5,7 +5,7 @@ from win32com.client import constants as wincom_const
 from officelib import const as olconst
 import contextlib
 
-class C():
+class WdC():
     def __getattr__(self, a):
         v = getattr(wincom_const, a, None)
         if v is None:
@@ -18,7 +18,7 @@ class C():
         object.__setattr__(self, a, v)
         return v
 
-c = C()
+wdc = WdC()
 
 @contextlib.contextmanager
 def screen_lock(word):
