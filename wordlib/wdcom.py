@@ -20,13 +20,20 @@ class WdC():
 
 wdc = WdC()
 
+_unspecified = object()
+
 @contextlib.contextmanager
-def screen_lock(word):
+def screen_lock(word, visible=_unspecified):
     word.ScreenUpdating = False
+    if visible is not _unspecified:
+        oldvis = word.Visible
+        word.Visible = visible
     try:
         yield None
     finally:
         word.ScreenUpdating = True
+        if visible is not _unspecified:
+            word.Visible = oldvis
 lock_screen = screen_lock
 
 
