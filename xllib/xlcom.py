@@ -710,24 +710,19 @@ class HiddenXl():
         return False
      
      
-class screen_lock():
-    def __init__(self, xl, preserve=True):
-        self.xl = xl
-        self.preserve = preserve
-        self._status = True
-    def __enter__(self):
-        if self.preserve:
-            self._status = self.xl.ScreenUpdating
-        self.xl.ScreenUpdating = False
-        self.xl.DisplayAlerts = False
-    def __exit__(self, *args):
-        if self.preserve:
-            updating = self._status
-        else:
-            updating = True
-        self.xl.ScreenUpdating = updating
-        self.xl.DisplayAlerts = True
-        return False
+import contextlib 
+@contextlib.contextmanager
+def screen_lock(xl, preserve=True):
+    if preserve:
+        updating = xl.ScreenUpdating
+    xl.ScreenUpdating = False
+    xl.DisplayAlerts = False
+    try:
+        yield
+    finally:
+        if not preserve or updating == True:
+            xl.ScreenUpdating = True
+        xl.DisplayAlerts = True
 
 
 if __name__ == '__main__':
